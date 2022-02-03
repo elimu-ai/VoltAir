@@ -1,4 +1,4 @@
-# VoltAir
+# VoltAir 🕹
 
 Game for learning letter sounds.
 
