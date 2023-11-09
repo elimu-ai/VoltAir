@@ -1,6 +1,6 @@
 # VoltAir 🕹
 
-Game for learning letter sounds.
+Game for learning letter-sound correspondences.
 
 Corresponding [EGRA skill](https://github.com/elimu-ai/model/blob/main/src/main/java/ai/elimu/model/v2/enums/content/LiteracySkill.java): `LETTER_IDENTIFICATION`
 > Letter-sound identification tests the actual knowledge students need to have to be able to decode words—i.e., knowing the sound the letter represents allows students to sound out a word.
