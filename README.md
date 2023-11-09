@@ -2,7 +2,7 @@
 
 Game for learning letter-sound correspondences.
 
-Corresponding [EGRA skill](https://github.com/elimu-ai/model/blob/master/src/main/java/ai/elimu/model/v2/enums/content/LiteracySkill.java): `LETTER_IDENTIFICATION`
+Corresponding [EGRA skill](https://github.com/elimu-ai/model/blob/main/src/main/java/ai/elimu/model/v2/enums/content/LiteracySkill.java): `LETTER_IDENTIFICATION`
 > Letter-sound identification tests the actual knowledge students need to have to be able to decode words—i.e., knowing the sound the letter represents allows students to sound out a word.
     
 > ![EGRA_LETTER_IDENTIFICATION.png](https://raw.githubusercontent.com/elimu-ai/webapp/master/src/main/webapp/static/img/admin/EGRA_LETTER_IDENTIFICATION.png)
@@ -30,9 +30,6 @@ See documentation at [doc/src/gettingStarted](doc/src/gettingStarted)
 
 ---
 
-## About the elimu.ai Community
+elimu.ai - Free open source learning software for out-of-school children ✨🚀
 
-![elimu ai-tagline](https://user-images.githubusercontent.com/15718174/54360503-e8e88980-465c-11e9-9792-32b513105cf3.png)
-
- * For a high-level description of the project, see https://github.com/elimu-ai/wiki/blob/master/README.md.
- * For project milestones, see https://github.com/elimu-ai/wiki/projects.
+[Website 🌐](https://elimu.ai) &nbsp; [Wiki 📃](https://github.com/elimu-ai/wiki#readme) &nbsp; [Projects 👩🏽‍💻](https://github.com/orgs/elimu-ai/projects?query=is%3Aopen) &nbsp; [Milestones 🎯](https://github.com/elimu-ai/wiki/milestones) &nbsp; [Community 👋🏽](https://github.com/elimu-ai/wiki#open-source-community)
