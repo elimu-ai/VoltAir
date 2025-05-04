@@ -482,7 +482,7 @@ UiComponent {
         }
     }
 
-    MenuButton {
+    /*MenuButton*/ MenuIcon {
         id: retryButton
 
         anchors.left: scoreScreenCard.left
@@ -494,7 +494,10 @@ UiComponent {
         height: 0.3 * scoreScreenCard.height
 
         enabled: nextLevelButton.enabled
-        buttonText: TR.value("retry")
+        //buttonText: TR.value("retry")
+        menuOption:  TR.value("retry")
+        selectedIconSource: Util.getPathToImage("UI/retry.png")
+        unselectedIconSource: Util.getPathToImage("UI/retry.png")
 
         focusLeft: muteButton
         focusUp: muteButton
@@ -507,7 +510,7 @@ UiComponent {
         }
     }
 
-    MenuButton {
+    /*MenuButton*/ MenuIcon {
         id: nextLevelButton
 
         anchors.right: scoreScreenCard.right
@@ -522,7 +525,10 @@ UiComponent {
         focus: true
 
         opacity: 0
-        buttonText: TR.value(root.gameCompleted ? "finish" : "next")
+        //buttonText: TR.value(root.gameCompleted ? "finish" : "next")
+        menuOption: TR.value(root.gameCompleted ? "finish" : "next")
+        selectedIconSource: Util.getPathToImage(root.gameCompleted ? "UI/finish.png" : "UI/play.png")
+        unselectedIconSource: Util.getPathToImage(root.gameCompleted ? "UI/finish.png" : "UI/play.png")
 
         focusRight: pgsButton
         focusUp: pgsButton
@@ -532,6 +538,8 @@ UiComponent {
             root.playNextLevelRequested()
         }
     }
+
+
 
     onEscaped: {
         root.startMenuRequested()
