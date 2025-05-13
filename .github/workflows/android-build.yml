@@ -48,6 +48,9 @@ jobs:
         ls $QT_ROOT
         source qt-5.8.0-android-travis.env
         
+        # Persist Qt, SDK and NDK exports for subsequent steps
+        cat qt-5.8.0-android-travis.env >> $GITHUB_ENV
+        
     - name: Build Android APK
       run: |
         export JDK=$JAVA_HOME
