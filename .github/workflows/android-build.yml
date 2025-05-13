@@ -54,7 +54,7 @@ jobs:
         export WORKDIR=$PWD
         
         # Run the build script with the same parameters
-        python build/build_android_debug_travis.py \
+        python2.7 build/build_android_debug_travis.py \
           --build-dir=bin \
           --qt-root=$QT_HOME \
           --voltair-root=$PWD \
