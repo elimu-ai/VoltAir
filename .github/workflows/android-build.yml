@@ -1,4 +1,3 @@
-
 name: Android Build
 
 on:
@@ -69,7 +68,7 @@ jobs:
           --num-process=2
           
     - name: Upload APK artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: VoltAir-APK
         path: bin/VoltAir.apk
