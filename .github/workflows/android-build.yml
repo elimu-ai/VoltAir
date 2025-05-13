@@ -1,1 +1,75 @@
 
+name: Android Build
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    env:
+      DISPLAY: ':99.0'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+        
+    - name: Setup Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '11'
+        
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y p7zip-full ant lib32z1-dev lib32stdc++6 python2.7
+        
+    - name: Start Xvfb
+      run: |
+        sudo apt-get install -y xvfb
+        Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+    
+    - name: Set up Qt
+      run: |
+        # Cache directory for downloaded Qt
+        mkdir -p $HOME/Qt
+        export QT_ROOT=$HOME/Qt
+        export WORKDIR=$PWD
+        
+        # Download and set up Qt (using the same script from Travis)
+        ./travisScripts/qt-5.8-android
+        cat qt-5.8.0-android-travis.env
+        ls $QT_ROOT
+        source qt-5.8.0-android-travis.env
+        
+    - name: Build Android APK
+      run: |
+        export JDK=$JAVA_HOME
+        export WORKDIR=$PWD
+        
+        # Run the build script with the same parameters
+        python build/build_android_debug_travis.py \
+          --build-dir=bin \
+          --qt-root=$QT_HOME \
+          --voltair-root=$PWD \
+          --jdk=$JDK \
+          --sdk-root=$ANDROID_SDK_ROOT \
+          --ndk-root=$ANDROID_NDK_ROOT \
+          --ndk-rootR9=$ANDROID_NDK9_ROOT \
+          --ant=/usr/bin/ant \
+          --liquidfun-root=./third_party/liquidfun/liquidfun \
+          --output-apk=VoltAir.apk \
+          --num-process=2
+          
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: VoltAir-APK
+        path: bin/VoltAir.apk
