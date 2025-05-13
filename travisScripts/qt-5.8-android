@@ -9,6 +9,7 @@ travisScripts/extract-qt-installer qt-opensource-linux-x64-android-5.8.0.run $PW
 echo Installing NDK R9
 wget -c -nv http://dl.google.com/android/ndk/android-ndk-r9-linux-x86.tar.bz2
 tar xjf android-ndk-r9-linux-x86.tar.bz2
+mv android-ndk-r9-linux-x86 android-ndk-r9
 
 echo Installing NDK R14
 wget -c -nv https://dl.google.com/android/repository/android-ndk-r14b-linux-x86_64.zip
