@@ -1,7 +1,7 @@
 #!/bin/sh
 
 echo Downloading Qt
-wget -c --no-check-certificate -nv https://download.qt.io/archive/qt/5.8/5.8.0/qt-opensource-linux-x64-android-5.8.0.run
+wget -c --no-check-certificate -nv https://download.qt.io/new_archive/qt/5.8/5.8.0/qt-opensource-linux-x64-android-5.8.0.run
 echo Installing Qt
 travisScripts/extract-qt-installer qt-opensource-linux-x64-android-5.8.0.run $PWD/Qt
 
@@ -9,6 +9,7 @@ travisScripts/extract-qt-installer qt-opensource-linux-x64-android-5.8.0.run $PW
 echo Installing NDK R9
 wget -c -nv http://dl.google.com/android/ndk/android-ndk-r9-linux-x86.tar.bz2
 tar xjf android-ndk-r9-linux-x86.tar.bz2
+mv android-ndk-r9-linux-x86 android-ndk-r9
 
 echo Installing NDK R14
 wget -c -nv https://dl.google.com/android/repository/android-ndk-r14b-linux-x86_64.zip
@@ -18,7 +19,7 @@ echo Create qt-5.8.0-android-travis.env
 cat << EOF > qt-5.8.0-android-travis.env
 export QT_ROOT=$PWD/Qt
 export QT_HOME=$PWD/Qt/5.8
-export ANDROID_SDK_ROOT=/usr/local/android-sdk 
+export ANDROID_SDK_ROOT=/usr/local/android-sdk
 export ANDROID_NDK_ROOT=$PWD/android-ndk-r14b
 export ANDROID_NDK9_ROOT=$PWD/android-ndk-r9
 export PATH=$PWD/Qt/5.8/android_armv7/bin:$PWD/android-sdk-linux/tools:$PATH
