@@ -119,7 +119,7 @@ UiComponent {
 
         // How to handle menu item selection.
         function onItemSelected(index) {
-            var menuOption = listView.model.get(index).menuOption
+            var menuOption = listView.model.get(index).name
             if (menuOption == "resume") {
                 root.resumeRequested()
             } else if (menuOption == "main.menu") {
@@ -132,26 +132,41 @@ UiComponent {
         }
 
         anchors.fill: parent
-        listItemWidth: 0.35 * parent.width
-        listItemHeight: 0.15 * parent.height
+        listItemWidth: 0.30 * parent.width
+        listItemHeight: 0.25 * parent.height
         visibleItemCount: 4
 
         listView.orientation: ListView.Vertical
         listView.spacing: 0.0
 
         listView.model: ListModel {
-            ListElement { menuOption: "resume" }
-            ListElement { menuOption: "main.menu" }
-            ListElement { menuOption: "change.level" }
-            ListElement { menuOption: "quit" }
+            ListElement {
+                name: "resume"
+                icon : "UI/play.png"
+            }
+            ListElement {
+                name: "main.menu"
+                icon : "UI/menu.png"
+            }
+            ListElement {
+                name: "change.level"
+                icon : "UI/setLevel.png"
+            }
+            ListElement {
+                name: "quit"
+                icon : "UI/powerOnOff.png"
+            }
         }
 
         // Template description of a menu item
-        listView.delegate: MenuButton {
-            height: pauseMenu.listItemHeight
+        listView.delegate: /*MenuButton*/ MenuIcon {
+            height: pauseMenu.listItemHeight * .8
             width: pauseMenu.listItemWidth
 
-            buttonText: TR.value(menuOption)
+            menuOption: TR.value(name)
+            unselectedIconSource: Util.getPathToImage(icon)
+            selectedIconSource: Util.getPathToImage(icon)
+            //buttonText: TR.value(menuOption)
 
             onPressed: {
                 pauseMenu.listView.currentIndex = index
