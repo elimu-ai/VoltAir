@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 #
 # Copyright (C) 2014 Google Inc.
 #
@@ -15,6 +15,7 @@
 # limitations under the License.
 
 """Builds a VoltAir.apk, currently in "Release" mode."""
+from __future__ import print_function
 import argparse
 import os
 import shutil
@@ -53,17 +54,35 @@ def RunSubprocess(argv, rundir=None):
       RunProcessError: If the subprocess returns fails
   """
 
+  pushed = False
   try:
     if rundir is not None:
       Pushd(rundir)
+      pushed = True
     joined_argv = " ".join(argv)
-    print >> sys.stderr, "Running subprocess: %s" % joined_argv
+    print("Running subprocess: %s" % joined_argv, file=sys.stderr)
 
-    process = subprocess.Popen(argv)
+    try:
+      process = subprocess.Popen(argv)
+    except OSError as exc:
+      # Provide an actionable message instead of a bare traceback.
+      # This is the failure seen in issue #76 ("[Errno 2] No such file or
+      # directory" for "/ndk-build"): it means the NDK path argument was
+      # empty or the NDK was never extracted.
+      print("ERROR: failed to execute '%s': %s" % (argv[0], exc),
+            file=sys.stderr)
+      print("HINT: if this is '<empty>/ndk-build' or "
+            "'.../android-ndk-r9/ndk-build', the NDK R9 setup likely failed. "
+            "Check that travisScripts/qt-5.8-android extracted "
+            "android-ndk-r9 (it extracts to 'android-ndk-r9', not "
+            "'android-ndk-r9-linux-x86') and that ANDROID_NDK9_ROOT was "
+            "propagated between workflow steps (see issue #76).",
+            file=sys.stderr)
+      raise
     process.wait()
-    print >> sys.stderr, "Subprocess succeeded."
+    print("Subprocess succeeded.", file=sys.stderr)
   finally:
-    if rundir is not None:
+    if pushed:
       Popd()
     #if process.returncode:
     #  raise RunProcessError(joined_argv, process.returncode)
@@ -87,18 +106,17 @@ _dirstack = []
 
 
 def Pushd(directory):
-  """Pushes directory onto a stack.
+  """Pushes current directory onto a stack and chdirs to `directory`.
 
   Args:
-    directory: directory to push
+    directory: directory to chdir to.
   """
-  _dirstack.append(directory)
+  _dirstack.append(os.getcwd())
   os.chdir(directory)
 
 
 def Popd():
-  """Pops and returns the top of the directory stack.
-  """
+  """Pops the directory stack and chdirs back."""
   os.chdir(_dirstack.pop())
 
 
@@ -110,7 +128,24 @@ def RunLiquidFunNdkBuild(cwd, ndk_root_r9):
     ndk_root: Android NDK location
   """
 
-  RunSubprocess([ndk_root_r9 + "/ndk-build", "V=1"], cwd)
+  if not ndk_root_r9:
+    print("ERROR: --ndk-rootR9 is empty. ANDROID_NDK9_ROOT was not "
+          "propagated from the Qt setup step (see issue #76).",
+          file=sys.stderr)
+    sys.exit(2)
+  ndk_build = ndk_root_r9 + "/ndk-build"
+  if not os.path.isfile(ndk_build):
+    print("ERROR: ndk-build not found at '%s'. NDK R9 setup likely failed "
+          "(see issue #76). Expected travisScripts/qt-5.8-android to extract "
+          "android-ndk-r9-linux-x86.tar.bz2 (which contains top-level dir "
+          "'android-ndk-r9')." % ndk_build, file=sys.stderr)
+    sys.exit(2)
+  if not os.path.isdir(cwd):
+    print("ERROR: liquidfun Box2D directory not found at '%s'. Did the "
+          "liquidfun submodule get checked out (actions/checkout with "
+          "submodules: recursive)?" % cwd, file=sys.stderr)
+    sys.exit(2)
+  RunSubprocess([ndk_build, "V=1"], cwd)
 
 
 def RunQmake(qt_root, voltair_root):
@@ -184,7 +219,7 @@ def RenameApk(dst_apk):
   """
 
   src_apk = os.getcwd() + "/android-build/bin/QtApp-debug-unaligned.apk"
-  print >> sys.stderr, "Renaming %s to %s" % (src_apk, dst_apk)
+  print("Renaming %s to %s" % (src_apk, dst_apk), file=sys.stderr)
   os.rename(src_apk, dst_apk)
 
 
@@ -240,13 +275,13 @@ def main():
 
   #if os.path.exists(build_dir):
   #  err = "Error: Target directory %s exists. Exiting" % build_dir
-  #  print >> sys.stderr, err
+  #  print(err, file=sys.stderr)
   #  return -1
 
   try:
 
     # Move to liquidfun directory and build it.
-    print "liquidfun_root" + liquidfun_root
+    print("liquidfun_root " + liquidfun_root)
     RunLiquidFunNdkBuild(liquidfun_root + "/Box2D", parsed_args.ndk_rootR9)
 
     # Create and move to voltair build target dir and start building.
@@ -254,41 +289,44 @@ def main():
       os.mkdir(build_dir)
     Pushd(build_dir)
 
-    # What follows are the required steps for building the an APK in Qt.  First
-    # we need to set up the environment as certain of the steps read it.
-    SetEnvironment(parsed_args.sdk_root, parsed_args.ndk_root,
-                   parsed_args.ndk_platform, parsed_args.ndk_rootR9)
+    try:
+      # What follows are the required steps for building the an APK in Qt.  First
+      # we need to set up the environment as certain of the steps read it.
+      SetEnvironment(parsed_args.sdk_root, parsed_args.ndk_root,
+                     parsed_args.ndk_platform, parsed_args.ndk_rootR9)
 
-    # 'qmake' is Qt's project builder. It will construct a Makefile that is then
-    # run.
-    RunQmake(qt_root, voltair_root)
+      # 'qmake' is Qt's project builder. It will construct a Makefile that is then
+      # run.
+      RunQmake(qt_root, voltair_root)
 
-    # Run the makefile, which results in the building of the libVoltAir.so file.
-    RunMake(parsed_args.num_processes)
+      # Run the makefile, which results in the building of the libVoltAir.so file.
+      RunMake(parsed_args.num_processes)
 
-    # This places the libVoltAir.so file in the appropriate directory.
-    RunMakeInstall()
+      # This places the libVoltAir.so file in the appropriate directory.
+      RunMakeInstall()
 
-    # Runs 'androiddeployqt' which constructs the APK from the libVoltAir.so and
-    # the other files specified in the Qt project (e.g. java files,
-    # AndroidManifest.xml, and so on).
-    RunAndroidDeployQt(qt_root, voltair_root, build_dir, parsed_args.ant,
-                       parsed_args.ndk_platform, parsed_args.jdk)
+      # Runs 'androiddeployqt' which constructs the APK from the libVoltAir.so and
+      # the other files specified in the Qt project (e.g. java files,
+      # AndroidManifest.xml, and so on).
+      RunAndroidDeployQt(qt_root, voltair_root, build_dir, parsed_args.ant,
+                         parsed_args.ndk_platform, parsed_args.jdk)
 
-    # The 'androiddeployqt' executable leaves the APK in
-    # QtApp-release.apk. Move it to a more descriptive location (i.e.
-    # VoltAir.apk).
-    # RenameApk(parsed_args.output_apk)
+      # The 'androiddeployqt' executable leaves the APK in
+      # QtApp-release.apk. Move it to a more descriptive location (i.e.
+      # VoltAir.apk).
+      # RenameApk(parsed_args.output_apk)
+    finally:
+      Popd()
 
-  except RunProcessError, error:
-    print >> sys.stderr, str(error)
+  except RunProcessError as error:
+    print(str(error), file=sys.stderr)
     return error.return_code
   finally:
     #Popd()
 
     # Remove the build dir in order to leave qt tree as we found it.
     #RemoveBuildDir(build_dir)
-    print ""
+    print("")
 
   return 0
 

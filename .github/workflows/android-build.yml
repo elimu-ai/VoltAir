@@ -28,7 +28,9 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y p7zip-full ant lib32z1-dev lib32stdc++6 python2.7
+          # NOTE: python2.7 is not available on ubuntu-22.04; the build script
+          # runs on python3 (see build/build_android_debug_travis.py).
+          sudo apt-get install -y p7zip-full ant lib32z1-dev lib32stdc++6
 
       - name: Start Xvfb
         run: |
@@ -37,26 +39,47 @@ jobs:
 
       - name: Set up Qt
         run: |
-          # Cache directory for downloaded Qt
-          mkdir -p $HOME/Qt
-          export QT_ROOT=$HOME/Qt
           export WORKDIR=$PWD
-          
+
           # Download and set up Qt (using the same script from Travis)
           ./travisScripts/qt-5.8-android
           cat qt-5.8.0-android-travis.env
-          ls $QT_ROOT
+          # Fail fast with an actionable message if NDK extraction broke
+          # (regression test for issue #76).
+          test -x ./android-ndk-r9/ndk-build || { echo "::error::android-ndk-r9/ndk-build missing after setup (issue #76)"; ls -la; exit 1; }
+          test -x ./android-ndk-r14b/ndk-build || { echo "::error::android-ndk-r14b/ndk-build missing after setup"; ls -la; exit 1; }
           source qt-5.8.0-android-travis.env
-          # Persist Qt, SDK and NDK exports for subsequent steps
-          cat qt-5.8.0-android-travis.env >> $GITHUB_ENV
+          ls "$QT_ROOT"
+          # Persist Qt, SDK and NDK exports for subsequent steps.
+          # NOTE (issue #76): $GITHUB_ENV expects "VAR=VALUE" lines, NOT
+          # "export VAR=VALUE". Appending the file verbatim created variables
+          # literally named "export QT_HOME" etc., leaving $QT_HOME,
+          # $ANDROID_NDK9_ROOT, ... empty in later steps, which turned the
+          # liquidfun build command into "/ndk-build" -> "No such file or
+          # directory". Strip the leading "export " before persisting.
+          # PATH is excluded here (it goes via GITHUB_PATH below).
+          grep -v '^export PATH=' qt-5.8.0-android-travis.env | sed 's/^export //' >> $GITHUB_ENV
+          # PATH entries go via GITHUB_PATH, not GITHUB_ENV.
+          echo "$QT_HOME/android_armv7/bin" >> $GITHUB_PATH
 
       - name: Build Android APK
         run: |
           export JDK=$JAVA_HOME
           export WORKDIR=$PWD
-          
+
+          # Fail fast if env propagation from "Set up Qt" broke (issue #76).
+          # Without this, an empty $ANDROID_NDK9_ROOT turns the liquidfun
+          # build command into "/ndk-build" with a cryptic
+          # "OSError: [Errno 2] No such file or directory".
+          : "${QT_HOME:?QT_HOME is empty - Qt setup / GITHUB_ENV propagation failed (issue #76)}"
+          : "${ANDROID_SDK_ROOT:?ANDROID_SDK_ROOT is empty}"
+          : "${ANDROID_NDK_ROOT:?ANDROID_NDK_ROOT is empty}"
+          : "${ANDROID_NDK9_ROOT:?ANDROID_NDK9_ROOT is empty - NDK R9 setup failed (issue #76)}"
+          test -x "$ANDROID_NDK9_ROOT/ndk-build" || { echo "::error::ndk-build not found at $ANDROID_NDK9_ROOT/ndk-build (issue #76)"; ls -la "$ANDROID_NDK9_ROOT" || ls -la; exit 1; }
+          test -x "$QT_HOME/android_armv7/bin/qmake" || { echo "::error::qmake not found at $QT_HOME/android_armv7/bin/qmake"; ls -la "$QT_HOME" || true; exit 1; }
+
           # Run the build script with the same parameters
-          python2.7 build/build_android_debug_travis.py \
+          python3 build/build_android_debug_travis.py \
             --build-dir=bin \
             --qt-root=$QT_HOME \
             --voltair-root=$PWD \
@@ -67,7 +90,7 @@ jobs:
             --ant=/usr/bin/ant \
             --liquidfun-root=./third_party/liquidfun/liquidfun \
             --output-apk=VoltAir.apk \
-            --num-process=2
+            --num-processes=2
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4

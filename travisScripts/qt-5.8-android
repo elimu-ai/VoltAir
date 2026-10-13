@@ -1,4 +1,6 @@
 #!/bin/sh
+# Setup Qt 5.8 + Android NDKs for VoltAir CI (Travis + GitHub Actions).
+set -e
 
 echo Downloading Qt
 wget -c --no-check-certificate -nv https://download.qt.io/new_archive/qt/5.8/5.8.0/qt-opensource-linux-x64-android-5.8.0.run
@@ -7,20 +9,51 @@ travisScripts/extract-qt-installer qt-opensource-linux-x64-android-5.8.0.run $PW
 
 #Travis do not come with NDK
 echo Installing NDK R9
-wget -c -nv http://dl.google.com/android/ndk/android-ndk-r9-linux-x86.tar.bz2
-tar xjf android-ndk-r9-linux-x86.tar.bz2
-mv android-ndk-r9-linux-x86 android-ndk-r9
+if [ ! -d android-ndk-r9 ]; then
+  wget -c -nv https://dl.google.com/android/ndk/android-ndk-r9-linux-x86.tar.bz2
+  tar xjf android-ndk-r9-linux-x86.tar.bz2
+fi
+# NOTE (issue #76): android-ndk-r9-linux-x86.tar.bz2 extracts to
+# "android-ndk-r9", NOT "android-ndk-r9-linux-x86". The unconditional
+# "mv android-ndk-r9-linux-x86 android-ndk-r9" therefore always failed with
+# "No such file or directory". Only rename if the old name actually exists.
+if [ -d android-ndk-r9-linux-x86 ] && [ ! -d android-ndk-r9 ]; then
+  mv android-ndk-r9-linux-x86 android-ndk-r9
+fi
+if [ ! -x android-ndk-r9/ndk-build ]; then
+  echo "ERROR: android-ndk-r9/ndk-build not found after extraction" >&2
+  ls -la . >&2 || true
+  exit 1
+fi
 
 echo Installing NDK R14
-wget -c -nv https://dl.google.com/android/repository/android-ndk-r14b-linux-x86_64.zip
-unzip -qq android-ndk-r14b-linux-x86_64.zip
+if [ ! -d android-ndk-r14b ]; then
+  wget -c -nv https://dl.google.com/android/repository/android-ndk-r14b-linux-x86_64.zip
+  unzip -qq android-ndk-r14b-linux-x86_64.zip
+fi
+if [ ! -d android-ndk-r14b ]; then
+  echo "ERROR: android-ndk-r14b directory not found after extraction" >&2
+  exit 1
+fi
+
+# Prefer the SDK pre-installed on GitHub Actions runners; fall back to the
+# legacy Travis path when running elsewhere.
+if [ -n "${ANDROID_SDK_ROOT:-}" ]; then
+  SDK_ROOT="$ANDROID_SDK_ROOT"
+elif [ -n "${ANDROID_HOME:-}" ]; then
+  SDK_ROOT="$ANDROID_HOME"
+elif [ -d /usr/local/lib/android/sdk ]; then
+  SDK_ROOT=/usr/local/lib/android/sdk
+else
+  SDK_ROOT=/usr/local/android-sdk
+fi
 
 echo Create qt-5.8.0-android-travis.env
 cat << EOF > qt-5.8.0-android-travis.env
 export QT_ROOT=$PWD/Qt
 export QT_HOME=$PWD/Qt/5.8
-export ANDROID_SDK_ROOT=/usr/local/android-sdk
+export ANDROID_SDK_ROOT=$SDK_ROOT
 export ANDROID_NDK_ROOT=$PWD/android-ndk-r14b
 export ANDROID_NDK9_ROOT=$PWD/android-ndk-r9
-export PATH=$PWD/Qt/5.8/android_armv7/bin:$PWD/android-sdk-linux/tools:$PATH
+export PATH=$PWD/Qt/5.8/android_armv7/bin:$SDK_ROOT/tools:$SDK_ROOT/platform-tools:$PATH
 EOF
