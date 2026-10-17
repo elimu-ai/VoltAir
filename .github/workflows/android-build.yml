@@ -97,3 +97,4 @@ jobs:
         with:
           name: VoltAir-APK
           path: bin/VoltAir.apk
+          if-no-files-found: error
