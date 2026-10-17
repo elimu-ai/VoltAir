@@ -92,6 +92,16 @@ jobs:
             --output-apk=VoltAir.apk \
             --num-processes=2
 
+      - name: Verify APK exists
+        run: |
+          if [ ! -s bin/VoltAir.apk ]; then
+            echo "::error::bin/VoltAir.apk was not produced (missing or empty)"
+            echo "Contents of bin/:"
+            ls -la bin/ || echo "bin/ directory does not exist"
+            exit 1
+          fi
+          ls -la bin/VoltAir.apk
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
