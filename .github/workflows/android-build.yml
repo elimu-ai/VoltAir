@@ -82,6 +82,10 @@ jobs:
             sudo unzip -qq -o /tmp/tools_r25.zip -d "$SDK_ROOT"
             rm -f /tmp/tools_r25.zip
           fi
+          # sudo unzip leaves root-owned 744 perms (rwxr--r--) so `runner`
+          # can't execute tools/android (log showed file present but
+          # `test -x` failed). Fix exec bits; re-runnable for cached runs.
+          sudo chmod -R a+rx "$SDK_ROOT/tools"
           test -x "$SDK_ROOT/tools/android" || { echo "::error::tools/android still missing after install"; ls -la "$SDK_ROOT/tools" || true; exit 1; }
           echo "Accepting SDK licenses..."
           yes | sudo "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
