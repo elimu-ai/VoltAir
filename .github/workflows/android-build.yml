@@ -91,6 +91,20 @@ jobs:
           yes | sudo "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
           echo "Installing android-18 platform + build-tools..."
           sudo "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-18" "build-tools;26.0.2" "platform-tools"
+          # ant auto-selects the newest build-tools dir; modern ones (e.g.
+          # 37.0.0) removed `dx`, causing "Cannot run program .../dx"
+          # (error=2). Prune to ant-compatible 26.0.2 only.
+          echo "Pruning modern build-tools (incompatible with ant)..."
+          for d in "$SDK_ROOT"/build-tools/*; do
+            ver="$(basename "$d")"
+            if [ "$ver" != "26.0.2" ]; then
+              echo "Removing build-tools/$ver..."
+              sudo rm -rf "$d"
+            fi
+          done
+          sudo chmod -R a+rx "$SDK_ROOT/build-tools/26.0.2"
+          test -x "$SDK_ROOT/build-tools/26.0.2/dx" || { echo "::error::dx missing in 26.0.2"; ls -la "$SDK_ROOT/build-tools/26.0.2" || true; exit 1; }
+          test -x "$SDK_ROOT/build-tools/26.0.2/aapt" || { echo "::error::aapt missing in 26.0.2"; ls -la "$SDK_ROOT/build-tools/26.0.2" || true; exit 1; }
           test -f "$SDK_ROOT/platforms/android-18/android.jar" || { echo "::error::android-18 platform missing"; ls "$SDK_ROOT/platforms" || true; exit 1; }
           ls "$SDK_ROOT/tools/android" "$SDK_ROOT/platforms/android-18/android.jar"
 
