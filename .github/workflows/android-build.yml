@@ -22,8 +22,10 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
+          # Qt 5.8 + ant + legacy `tools/android` requires JDK 8.
+          # JDK 11 breaks ant builds (source/target 1.5-1.6 unsupported).
           distribution: 'temurin'
-          java-version: '11'
+          java-version: '8'
 
       - name: Install dependencies
         run: |
@@ -61,6 +63,32 @@ jobs:
           grep -v '^export PATH=' qt-5.8.0-android-travis.env | sed 's/^export //' >> $GITHUB_ENV
           # PATH entries go via GITHUB_PATH, not GITHUB_ENV.
           echo "$QT_HOME/android_armv7/bin" >> $GITHUB_PATH
+
+      - name: Install legacy SDK for Qt 5.8
+        run: |
+          set -e
+          # Qt 5.8 androiddeployqt hard-requires legacy SDK `tools/android`
+          # (removed in SDK Tools 26+). GH ubuntu-22.04 runners only ship
+          # cmdline-tools, so androiddeployqt aborts with:
+          #   "Cannot find Android tool: .../sdk/tools/android" (exit 13).
+          # Restore tools_r25.2.5 (last release with tools/android) plus
+          # the android-18 platform and ant-compatible build-tools.
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          echo "SDK_ROOT=$SDK_ROOT"
+          ls "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDK_ROOT/tools/android" ]; then
+            echo "Installing legacy SDK Tools r25.2.5..."
+            wget -q https://dl.google.com/android/repository/tools_r25.2.5-linux.zip -O /tmp/tools_r25.zip
+            sudo unzip -qq -o /tmp/tools_r25.zip -d "$SDK_ROOT"
+            rm -f /tmp/tools_r25.zip
+          fi
+          test -x "$SDK_ROOT/tools/android" || { echo "::error::tools/android still missing after install"; ls -la "$SDK_ROOT/tools" || true; exit 1; }
+          echo "Accepting SDK licenses..."
+          yes | sudo "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          echo "Installing android-18 platform + build-tools..."
+          sudo "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-18" "build-tools;26.0.2" "platform-tools"
+          test -f "$SDK_ROOT/platforms/android-18/android.jar" || { echo "::error::android-18 platform missing"; ls "$SDK_ROOT/platforms" || true; exit 1; }
+          ls "$SDK_ROOT/tools/android" "$SDK_ROOT/platforms/android-18/android.jar"
 
       - name: Build Android APK
         run: |
