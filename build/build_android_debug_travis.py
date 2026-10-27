@@ -17,6 +17,7 @@
 """Builds a VoltAir.apk, currently in "Release" mode."""
 from __future__ import print_function
 import argparse
+import glob
 import os
 import shutil
 import subprocess
@@ -80,12 +81,12 @@ def RunSubprocess(argv, rundir=None):
             file=sys.stderr)
       raise
     process.wait()
-    print("Subprocess succeeded.", file=sys.stderr)
+    if process.returncode:
+      raise RunProcessError(joined_argv, process.returncode)
+    print("Subprocess succeeded: %s" % joined_argv, file=sys.stderr)
   finally:
     if pushed:
       Popd()
-    #if process.returncode:
-    #  raise RunProcessError(joined_argv, process.returncode)
 
 
 def SetEnvironment(sdk_root, ndk_root, ndk_platform, ndk_rootR9):
@@ -215,10 +216,32 @@ def RenameApk(dst_apk):
   """Run the 'mv' command which moves the APK to a more reasonable name.
 
   Args:
-    dst_apk: name of destination apk
+    dst_apk: name of destination apk. Relative paths are resolved
+      against the build dir (CWD at call time), preserving the
+      historical `--build-dir=bin --output-apk=VoltAir.apk`
+      -> `bin/VoltAir.apk` contract (see issue #79).
   """
-
-  src_apk = os.getcwd() + "/android-build/bin/QtApp-debug-unaligned.apk"
+  build_cwd = os.getcwd()
+  candidates = [
+      os.path.join(build_cwd, "android-build/bin/QtApp-debug-unaligned.apk"),
+      os.path.join(build_cwd, "android-build/bin/QtApp-debug.apk"),
+  ]
+  # Fallback for Qt/SDK filename drift: any APK androiddeployqt left behind.
+  candidates.extend(sorted(glob.glob(os.path.join(build_cwd, "android-build/bin/*.apk"))))
+  src_apk = next((p for p in candidates if os.path.isfile(p)), None)
+  if src_apk is None:
+    print("ERROR: no APK produced in android-build/bin/ (see issue #79).",
+          file=sys.stderr)
+    print("Contents of %s:" % os.path.join(build_cwd, "android-build/bin"),
+          file=sys.stderr)
+    try:
+      print(os.listdir(os.path.join(build_cwd, "android-build/bin")),
+            file=sys.stderr)
+    except OSError as exc:
+      print("  (cannot list dir: %s)" % exc, file=sys.stderr)
+    sys.exit(2)
+  if not os.path.isabs(dst_apk):
+    dst_apk = os.path.join(build_cwd, dst_apk)
   print("Renaming %s to %s" % (src_apk, dst_apk), file=sys.stderr)
   os.rename(src_apk, dst_apk)
 
@@ -314,7 +337,7 @@ def main():
       # The 'androiddeployqt' executable leaves the APK in
       # QtApp-release.apk. Move it to a more descriptive location (i.e.
       # VoltAir.apk).
-      # RenameApk(parsed_args.output_apk)
+      RenameApk(parsed_args.output_apk)
     finally:
       Popd()
 
