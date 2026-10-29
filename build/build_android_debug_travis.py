@@ -314,7 +314,7 @@ def main():
       # The 'androiddeployqt' executable leaves the APK in
       # QtApp-release.apk. Move it to a more descriptive location (i.e.
       # VoltAir.apk).
-      # RenameApk(parsed_args.output_apk)
+      RenameApk(parsed_args.output_apk)
     finally:
       Popd()
 
