@@ -76,11 +76,8 @@ void Engine::init() {
     mViewer->setSource(Util::getUrlPathToAsset("Engine/qml/main.qml"));
     mViewer->setResizeMode(QQuickView::SizeRootObjectToView);
 
-    // Initially set the window to call glClear for us. This is to prevent an uninitialized frame
-    // buffer from being displayed to the user. We prevent the window from calling glClear later
-    // so that we can render under it.
+    // Clear the frame buffer explicitly in sceneRender().
     mViewer->setColor(QColor::fromRgba(0x00000000));
-    mViewer->setClearBeforeRendering(true);
 
     // Attempt to select RGB565 with a 16-bit depth buffer.
     // TODO: According to comments in q_createConfigAttributesFromFormat (qeglconvenience.cpp) this
@@ -249,11 +246,6 @@ void Engine::onAfterRendering() {
 }
 
 void Engine::synchronizeForRendering() {
-    // Stop Qt from clearing the back buffer now that we have properly attached to the rendering
-    // thread. We need to render beneath it, so the window clearing would obscure our draws. We
-    // instead clear the back buffer ourselves in sceneRender().
-    mViewer->setClearBeforeRendering(false);
-
     // Clean up the render list, just in case Qt decided not to render a frame.
     mRenderList->reset();
     mSyncsSinceNextLevelRequest++;
@@ -286,6 +278,8 @@ void Engine::synchronizeForRendering() {
 }
 
 void Engine::sceneRender() {
+    mViewer->beginExternalCommands();
+
     // Set up our GL state.
     float devicePixelRatio = mViewer->devicePixelRatio();
     glViewport(0, 0, mViewer->width() * devicePixelRatio, mViewer->height() * devicePixelRatio);
@@ -309,6 +303,7 @@ void Engine::sceneRender() {
     mRenderer->detachAsCurrent();
 
     glEnable(GL_DEPTH_TEST);
+    mViewer->endExternalCommands();
 }
 
 void Engine::debugRender() {

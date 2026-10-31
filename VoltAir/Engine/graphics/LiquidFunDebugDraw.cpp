@@ -15,7 +15,7 @@
  */
 
 #include <QColor>
-#include <QtGui/QOpenGLShaderProgram>
+#include <QOpenGLShaderProgram>
 #include <QtGui/QOpenGLContext>
 #include "Camera.h"
 #include "LiquidFunDebugDraw.h"

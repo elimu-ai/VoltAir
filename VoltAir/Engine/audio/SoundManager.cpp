@@ -22,6 +22,7 @@
 #endif
 
 SoundManager::SoundManager(QObject* parent) : QObject(parent) {
+    mBGMPlayer.setAudioOutput(&mAudioOutput);
     applyVolume();
     connect(&mBGMPlayer, &QMediaPlayer::mediaStatusChanged, this,
             &SoundManager::onBGMMediaStatusChanged, Qt::DirectConnection);
@@ -115,7 +116,7 @@ QSharedPointer<QSoundEffect> SoundManager::cacheSoundEffect(const QString& path,
 void SoundManager::updateCurrentBGMTrack() {
     const QUrl& bgmTrack = (!mBGMTracks.isEmpty()) ? mBGMTracks.last() : QUrl();
     if (bgmTrack != mCurrentBGMTrack) {
-        mBGMPlayer.setMedia(bgmTrack);
+        mBGMPlayer.setSource(bgmTrack);
         mCurrentBGMTrack = bgmTrack;
     }
 }
@@ -128,7 +129,7 @@ void SoundManager::pauseAll() {
 #ifdef Q_OS_ANDROID
     AndroidActivity::setBGMPaused(true);
 #else
-    if (mBGMPlayer.state() == QMediaPlayer::PlayingState) {
+    if (mBGMPlayer.playbackState() == QMediaPlayer::PlayingState) {
         mBGMPlayer.stop();
     }
 #endif
@@ -151,8 +152,8 @@ void SoundManager::resumeAll() {
 
 void SoundManager::applyVolume() {
     if (mBGMMuted) {
-        mBGMPlayer.setVolume(0);
+        mAudioOutput.setVolume(0.0f);
     } else {
-        mBGMPlayer.setVolume((int) (BASE_MUSIC_GAIN * QMEDIA_PLAYER_GAIN_FACTOR));
+        mAudioOutput.setVolume(BASE_MUSIC_GAIN);
     }
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import QtMultimedia 5.0
+import QtMultimedia
 import QtQuick 2.2
 import VoltAir 1.0
 
@@ -97,6 +97,10 @@ UiComponent {
 
         anchors.fill: parent
         fillMode: VideoOutput.PreserveAspectFit
+
+        // Advance even if the video fails to load; otherwise a missing codec
+        // or unreadable asset would stall the splash screen forever.
+        onErrorChanged: complete()
 
         onStopped: {
             complete()

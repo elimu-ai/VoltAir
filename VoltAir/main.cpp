@@ -49,6 +49,8 @@
 #include <Engine/utils/DebugMetricsMonitor.h>
 #include <Engine/utils/QmlUtil.h>
 #include <QDir>
+#include <QQuickWindow>
+#include <QSGRendererInterface>
 #include <QtGui/QGuiApplication>
 #include "Game.h"
 #include "LevelProgression.h"
@@ -110,6 +112,9 @@ void detectAndLoadLanguage()
 int main(int argc, char* argv[]) {
     // @uri VoltAir
     static const char* QML_LIBSTR = "VoltAir";
+    // Force the OpenGL backend: the engine issues raw OpenGL commands that
+    // require the GL RHI backend (the default backend is not guaranteed).
+    QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
     QGuiApplication app(argc, argv);
 
     detectAndLoadLanguage();

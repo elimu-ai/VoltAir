@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import QtGraphicalEffects 1.0
+import QtQuick.Effects
 import QtQuick 2.2
 import VoltAir 1.0
 
@@ -30,7 +30,7 @@ Item {
      */
     property alias textElement: text
     /**
-     * @brief type:DropShadow Reference to the internal @c DropShadow element that is used by this VoltAirText.
+     * @brief type:MultiEffect Reference to the internal @c MultiEffect element that is used by this VoltAirText.
      */
     property alias dropShadow: dropShadow
 
@@ -55,17 +55,17 @@ Item {
         font.pixelSize: 256
     }
 
-    DropShadow {
+    MultiEffect {
         id: dropShadow
 
         anchors.fill: text
         source: text
 
-        horizontalOffset: 1
-        verticalOffset: 2
-        radius: 6.0
-        spread: 0.6
-        samples: 16
-        color: "black"
+        shadowEnabled: true
+        shadowHorizontalOffset: 1
+        shadowVerticalOffset: 2
+        shadowBlur: 0.3
+        shadowOpacity: 1.0
+        shadowColor: "black"
     }
 }

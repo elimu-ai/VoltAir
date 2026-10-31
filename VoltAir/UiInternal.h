@@ -18,9 +18,8 @@
 #define UIINTERNAL_H
 
 #include <QQuickItem>
-
-class LevelProgression;
-class LevelProgressionList;
+#include "LevelProgression.h"
+#include "LevelProgressionList.h"
 
 /**
  * @ingroup QQuickItem

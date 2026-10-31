@@ -15,6 +15,7 @@
  */
 
 import QtQuick 2.2
+import QtQuick.Effects
 import VoltAir 1.0
 
 /**
@@ -33,30 +34,26 @@ Item {
      *
      * @note @c 0.0 indicates no grayscaling.  @c 1.0 is completly monochrome.
      */
-    property alias ratio: effect.ratio
+    property real ratio: 1.0
 
-    ShaderEffect {
-        id: effect
-
-        property variant src: ShaderEffectSource {
-            sourceItem: root.sourceItem
-            hideSource: true
-            recursive: true
+    // When no grayscaling is requested, bypass the effect entirely so the
+    // source subtree (which may itself contain MultiEffects) renders
+    // directly. Hiding the source unconditionally would force even unlocked
+    // cards through a proxy, breaking nested mask effects.
+    function updateVisibility() {
+        if (!sourceItem) {
+            return
         }
+        sourceItem.visible = !(ratio > 0.01)
+    }
+    onSourceItemChanged: updateVisibility()
+    onRatioChanged: updateVisibility()
+    Component.onCompleted: updateVisibility()
 
-        property real ratio: 1.0
-
+    MultiEffect {
         anchors.fill: parent
-
-        fragmentShader: "
-            varying highp vec2 qt_TexCoord0;
-            uniform sampler2D src;
-            uniform lowp float qt_Opacity;
-            uniform highp float ratio;
-            void main() {
-                lowp vec4 tex = texture2D(src, qt_TexCoord0);
-                lowp float gray = dot(tex.rgb, vec3(0.2126, 0.7152, 0.0722));
-                gl_FragColor = vec4(mix(tex.rgb, vec3(gray), ratio), tex.a) * qt_Opacity;
-            }"
+        source: root.sourceItem
+        saturation: -root.ratio
+        visible: root.ratio > 0.01
     }
 }
