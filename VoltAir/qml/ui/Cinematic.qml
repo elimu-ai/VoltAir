@@ -98,6 +98,10 @@ UiComponent {
         anchors.fill: parent
         fillMode: VideoOutput.PreserveAspectFit
 
+        // Advance even if the video fails to load; otherwise a missing codec
+        // or unreadable asset would stall the splash screen forever.
+        onErrorChanged: complete()
+
         onStopped: {
             complete()
         }

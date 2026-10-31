@@ -112,6 +112,8 @@ void detectAndLoadLanguage()
 int main(int argc, char* argv[]) {
     // @uri VoltAir
     static const char* QML_LIBSTR = "VoltAir";
+    // Force the OpenGL backend: the engine issues raw OpenGL commands that
+    // require the GL RHI backend (the default backend is not guaranteed).
     QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
     QGuiApplication app(argc, argv);
 

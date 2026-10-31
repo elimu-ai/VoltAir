@@ -56,6 +56,10 @@ void Game::init() {
     for (QQmlError error : uiComponent.errors()) {
         qDebug() << "Error on Line" << error.line() << ":" << error.description();
     }
+    if (!mUi) {
+        qCritical() << "Failed to create UI component";
+        return;
+    }
     Q_ASSERT(mUi);
     mUi->setFocus(true);
     engine->addChildItem(mUi);
