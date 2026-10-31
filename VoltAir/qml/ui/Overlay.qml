@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import QtMultimedia 5.0
 import QtQuick 2.2
 import VoltAir 1.0
 
