@@ -173,7 +173,7 @@ android {
         $$PWD/android/deploy/src/org/literacyapp/voltair/StudentUpdateReceiver.java \
 
     LIBS += \
-        $$LIQUIDFUN_DIR/Box2D/obj/local/armeabi-v7a/libliquidfun_static.a \
+        $$LIQUIDFUN_DIR/Box2D/obj/local/$$(VOLTAIR_ANDROID_ABI)/libliquidfun_static.a \
 
     QMAKE_CXXFLAGS_WARN_ON += -Wno-pragmas
 }
@@ -195,4 +195,3 @@ android {
 
 INCLUDEPATH += \
     $$PWD/$$LIQUIDFUN_DIR/Box2D \
-
