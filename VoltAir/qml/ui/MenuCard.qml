@@ -154,7 +154,7 @@ KeyNavFocusArea {
                     anchors.verticalCenterOffset: -0.08 * height
 
                     textElement.text: TR.value(titleText)
-                    dropShadow.color: inactiveColor
+                    dropShadow.shadowColor: inactiveColor
                 }
             }
         }
@@ -189,10 +189,10 @@ KeyNavFocusArea {
             root.scale = 1.0
             frame.source = Util.getPathToImage("UI/dialog_frame_highlight.png")
             title.source = Util.getPathToImage("UI/buttonhighlight.png")
-            text.dropShadow.color = text.activeColor
+            text.dropShadow.shadowColor = text.activeColor
             Engine.getSoundManager().playSoundEffect(Util.getPathToSound("btn_highlight.wav"))
         } else {
-            text.dropShadow.color = text.inactiveColor
+            text.dropShadow.shadowColor = text.inactiveColor
             root.scale = 0.9
             frame.source = Util.getPathToImage("UI/dialogFrame.png")
             title.source = Util.getPathToImage("UI/buttonBlue.png")
