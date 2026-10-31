@@ -20,8 +20,7 @@
 #include <Box2D/Box2D.h>
 #include <Engine/Logic.h>
 #include <Engine/audio/SoundEffectInstance.h>
-
-class Body;
+#include <Engine/Body.h>
 
 /**
  * @brief Logic which pulls its parent #actor in the direction of magnetic Body%s and also

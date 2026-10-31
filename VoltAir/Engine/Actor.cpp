@@ -59,11 +59,11 @@ Body* Actor::getBody() const {
 QObject* Actor::findChildByTypeName(const QString& typeName) {
     // Convert to a cstring and look up type.
     std::string typeNameStr(typeName.toStdString());
-    int typeId = QMetaType::type(typeNameStr.c_str());
-    if (typeId == QMetaType::UnknownType) {
+    const QMetaType metaType = QMetaType::fromName(typeNameStr.c_str());
+    if (!metaType.isValid()) {
         return nullptr;
     }
-    const QMetaObject* metadata = QMetaType::metaObjectForType(typeId);
+    const QMetaObject* metadata = metaType.metaObject();
 
     return findChildByType(this, *metadata);
 }

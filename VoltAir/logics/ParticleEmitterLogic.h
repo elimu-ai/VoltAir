@@ -18,6 +18,7 @@
 #define PARTICLEEMITTERLOGIC_H
 
 #include <Engine/particles/WaterParticleSet.h>
+#include <Engine/particles/ParticleLayer.h>
 #include "EmitterLogic.h"
 
 /**

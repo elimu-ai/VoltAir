@@ -33,6 +33,8 @@ class b2Shape;
 struct b2BodyDef;
 struct b2FixtureDef;
 
+Q_DECLARE_OPAQUE_POINTER(Actor*)
+
 /**
  * @ingroup Engine
  * @brief A QObject container for a Box2D @c b2Body.
@@ -674,9 +676,9 @@ private:
     // Internal methods to implement QQmlListProperty<Joint*>
     // --------------------------------------------------------------------------------------
     static void appendJoint(QQmlListProperty<Joint>* property, Joint* value);
-    static Joint* jointAt(QQmlListProperty<Joint>* property, int index);
+    static Joint* jointAt(QQmlListProperty<Joint>* property, qsizetype index);
     static void clearJoints(QQmlListProperty<Joint>* property);
-    static int countJoints(QQmlListProperty<Joint>* property);
+    static qsizetype countJoints(QQmlListProperty<Joint>* property);
 
     mutable Actor* mActor = nullptr;
 
