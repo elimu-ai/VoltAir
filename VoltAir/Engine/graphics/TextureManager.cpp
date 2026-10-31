@@ -14,11 +14,14 @@
  * limitations under the License.
  */
 
+#include <QFile>
+#include <QOpenGLFunctions>
 #include <QQuickWindow>
 #include <QSGTexture>
 #include "Engine.h"
 #include "TextureManager.h"
 #include "renderer/Texture.h"
+#include "utils/GraphicsUtil.h"
 #include "utils/Util.h"
 
 /**
@@ -159,14 +162,22 @@ void TextureImpl::bind() {
     if (!mTexture) {
         return;
     }
-    mTexture->bind();
+    QNativeInterface::QSGOpenGLTexture* glTexture =
+            mTexture->nativeInterface<QNativeInterface::QSGOpenGLTexture>();
+    QOpenGLFunctions* glFuncs = GraphicsUtil::getOpenGLFunctions();
+    if (glTexture && glFuncs) {
+        glFuncs->glBindTexture(GL_TEXTURE_2D, glTexture->nativeTexture());
+    }
 }
 
 void TextureImpl::unbind() {
     if (!mTexture) {
         return;
     }
-    glBindTexture(GL_TEXTURE_2D, 0);
+    QOpenGLFunctions* glFuncs = GraphicsUtil::getOpenGLFunctions();
+    if (glFuncs) {
+        glFuncs->glBindTexture(GL_TEXTURE_2D, 0);
+    }
 }
 
 int TextureImpl::getWidth() const {

@@ -19,6 +19,7 @@
 
 #include <QPointF>
 #include <QQmlListProperty>
+#include <QRandomGenerator>
 #include <QRectF>
 #include <QTouchEvent>
 #include <QVariantList>
@@ -147,13 +148,13 @@ private:
         callChangeFunc(property);
     }
 
-    static int countFunc(QQmlListProperty<TData>* property) {
+    static qsizetype countFunc(QQmlListProperty<TData>* property) {
         TObject* owner = static_cast<TObject*>(property->object);
         TListType& list = (owner->*TObjectField);
         return list.size();
     }
 
-    static TData* atFunc(QQmlListProperty<TData>* property, int index) {
+    static TData* atFunc(QQmlListProperty<TData>* property, qsizetype index) {
         TObject* owner = static_cast<TObject*>(property->object);
         TListType& list = (owner->*TObjectField);
         return list.at(index);
@@ -204,7 +205,7 @@ static inline float smoothstep(float t) {
  * @brief Returns a pseudo-random number in the range <tt>[0, 1)</tt>.
  */
 static inline float qrandF() {
-    return qrand() / ((float) RAND_MAX + 1);
+    return static_cast<float>(QRandomGenerator::global()->generateDouble());
 }
 
 

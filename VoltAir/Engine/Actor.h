@@ -20,8 +20,7 @@
 #include <QList>
 #include <QMap>
 #include <QQuickItem>
-
-class Body;
+#include "Body.h"
 class Logic;
 
 /**

@@ -17,6 +17,7 @@
 #ifndef SOUNDMANAGER_H
 #define SOUNDMANAGER_H
 
+#include <QAudioOutput>
 #include <QMediaPlayer>
 #include <QObject>
 #include <QSoundEffect>
@@ -160,6 +161,7 @@ private:
     void applyVolume();
     QSharedPointer<QSoundEffect> cacheSoundEffect(const QString& path, bool lookupOnly);
 
+    QAudioOutput mAudioOutput;
     QMediaPlayer mBGMPlayer;
     QMap<BGMPriority, QUrl> mBGMTracks;
     QUrl mCurrentBGMTrack;
@@ -169,7 +171,6 @@ private:
     bool mPaused = true;
 
     constexpr static const float BASE_MUSIC_GAIN = 0.30f;
-    constexpr static const int QMEDIA_PLAYER_GAIN_FACTOR = 100;
 };
 Q_DECLARE_METATYPE(SoundManager*)
 

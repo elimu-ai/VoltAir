@@ -310,6 +310,8 @@ void ParticleRendererItem::renderFboContents() {
         return;
     }
 
+    window()->beginExternalCommands();
+
     createParticleShader();
     QOpenGLFunctions* glFuncs = GraphicsUtil::getOpenGLFunctions();
 
@@ -398,6 +400,7 @@ void ParticleRendererItem::renderFboContents() {
         // Return GL to its old state.
         glFuncs->glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glViewport(0, 0, windowWidth, windowHeight);
+        window()->endExternalCommands();
         return;
     }
 
@@ -461,6 +464,7 @@ void ParticleRendererItem::renderFboContents() {
     mSquareFboToScreenMesh->unbind();
     glFuncs->glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, windowWidth, windowHeight);
+    window()->endExternalCommands();
 }
 
 void ParticleRendererItem::renderParticleSystem(b2ParticleSystem* psystem, float scale,
