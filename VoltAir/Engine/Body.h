@@ -33,7 +33,15 @@ class b2Shape;
 struct b2BodyDef;
 struct b2FixtureDef;
 
-Q_DECLARE_OPAQUE_POINTER(Actor*)
+// The full Actor definition lives in Actor.h, which includes this header, so
+// it cannot be included here. Q_MOC_INCLUDE gives the moc-generated code the
+// complete Q_OBJECT type for the actor property without a header cycle.
+// NOTE: Do not use Q_DECLARE_OPAQUE_POINTER(Actor*) here: Actor is
+// QObject-derived, and the opaque specialization strips the
+// PointerToQObject metatype handling, producing meta-type information for
+// Body::actor that is inconsistent with Q_DECLARE_METATYPE(Actor*) in
+// Actor.h and breaks QML object wrapping (e.g. otherBody.actor).
+Q_MOC_INCLUDE("Actor.h")
 
 /**
  * @ingroup Engine
