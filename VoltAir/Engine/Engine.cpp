@@ -110,7 +110,11 @@ void Engine::init() {
     // Other connections.
     connect(mViewer.get(), &QQuickView::beforeSynchronizing, this, &Engine::onBeforeSynchronizing,
             Qt::DirectConnection);
-    connect(mViewer.get(), &QQuickView::beforeRendering, this, &Engine::onBeforeRendering,
+    // Qt 6 RHI begins its render pass (and clears the swapchain target) after
+    // beforeRendering; raw GL drawn there is wiped before the scene graph
+    // records. beforeRenderPassRecording fires inside the pass, so external
+    // commands land in the displayed framebuffer underneath the QML items.
+    connect(mViewer.get(), &QQuickView::beforeRenderPassRecording, this, &Engine::onBeforeRendering,
             Qt::DirectConnection);
     connect(mViewer.get(), &QQuickView::afterRendering, this, &Engine::onAfterRendering,
             Qt::DirectConnection);
