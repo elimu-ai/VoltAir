@@ -203,7 +203,10 @@ int main(int argc, char* argv[]) {
     registerQmlFilesInDir("qml/graphics", QML_LIBSTR);
 
     Engine::getInstance()->init();
-    Game::getInstance()->init();
+    if (!Game::getInstance()->init()) {
+        qCritical() << "Game initialization failed; terminating before event loop.";
+        return 1;
+    }
 
     return app.exec();
 }
