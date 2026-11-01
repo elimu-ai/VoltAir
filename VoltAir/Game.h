@@ -43,8 +43,11 @@ public:
      * This includes instantiating the UI, reading in the level progressions, player profiles
      * and making signal/slot connections to the various submodules.
      *
+     * @return @c true if initialization succeeded, @c false if a required
+     * component (e.g. the UI) could not be created. On failure the game is
+     * left uninitialized and the caller must not enter the event loop.
      */
-    void init();
+    bool init();
     /**
      * @brief Returns if any of the UI screens are active.
      */
