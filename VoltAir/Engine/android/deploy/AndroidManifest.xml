@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<manifest android:versionCode="1000004" android:versionName="1.0.4" package="org.literacyapp.voltair" xmlns:android="http://schemas.android.com/apk/res/android" android:installLocation="auto">
+<manifest android:versionCode="1000004" android:versionName="1.0.4" package="ai.elimu.voltair" xmlns:android="http://schemas.android.com/apk/res/android" android:installLocation="auto">
 
     <!-- TODO: What screen sizes do we actually support? -->
     <supports-screens android:anyDensity="true" android:smallScreens="true" android:normalScreens="true" android:largeScreens="true"/>
@@ -21,7 +21,7 @@
         <meta-data android:name="com.google.android.gms.appstate.APP_ID" android:value="@string/app_id"/>
         <meta-data android:name="com.google.android.gms.games.APP_ID" android:value="@string/app_id"/>
 
-        <activity android:name="org.literacyapp.voltair.VoltAirActivity" android:label="@string/app_name" android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|locale|fontScale|keyboard|keyboardHidden|navigation" android:screenOrientation="sensorLandscape" android:launchMode="singleTop">
+        <activity android:name="ai.elimu.voltair.VoltAirActivity" android:label="@string/app_name" android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|locale|fontScale|keyboard|keyboardHidden|navigation" android:screenOrientation="sensorLandscape" android:launchMode="singleTop">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>

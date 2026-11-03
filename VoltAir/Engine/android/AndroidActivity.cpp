@@ -440,7 +440,7 @@ jclass AndroidActivity::getActivityClass(JNIEnv* jni, jobject activity)  {
         // TODO: remove voltAir reference.
         sActivityClass = reinterpret_cast<jclass>(jni->NewGlobalRef(
                 (activity) ? jni->GetObjectClass(activity)
-                           : jni->FindClass(JAVA_PACKAGE_PREFIX "voltair/VoltAirActivity")));
+                           : jni->FindClass("ai/elimu/voltair/VoltAirActivity")));
         assert(sActivityClass);
     }
     return sActivityClass;
