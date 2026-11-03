@@ -154,3 +154,42 @@ jobs:
           name: VoltAir-APK
           path: bin/VoltAir.apk
           if-no-files-found: error
+
+  emulator-test:
+    needs: build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout (for the smoke-test script only)
+        uses: actions/checkout@v4
+
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: VoltAir-APK
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Launch APK in emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: bash .github/scripts/smoke-test.sh VoltAir.apk
+
+      - name: Upload launch results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emulator-launch-results
+          path: |
+            launch.png
+            logcat.txt
+          if-no-files-found: ignore
