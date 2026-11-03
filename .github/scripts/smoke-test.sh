@@ -8,7 +8,7 @@ AAPT="$(ls -d "$ANDROID_HOME"/build-tools/*/aapt | sort -V | tail -1)"
 PKG="$("$AAPT" dump badging "$APK" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")"
 echo "Package: $PKG"
 
-adb install -r "$APK"
+adb install -g -r "$APK"
 adb logcat -c
 adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1
 
