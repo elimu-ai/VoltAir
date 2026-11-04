@@ -1,0 +1,161 @@
+name: Release APK
+
+# Manually triggered (Actions -> "Release APK" -> Run workflow).
+#
+# Development versions carry a "-SNAPSHOT" suffix in AndroidManifest.xml
+# (e.g. 1.0.5-SNAPSHOT). Releasing it:
+#
+#   1. prepare  Drops the suffix in a release commit (1.0.5) and pushes it to a
+#               temporary branch, so the APK and the tag both say 1.0.5 and
+#               never 1.0.5-SNAPSHOT.
+#   2. build    Builds that commit via android-build.yml (including the
+#               emulator smoke test).
+#   3. release  Tags the release commit (e.g. 1.0.5, no "v" prefix, like the
+#               existing tags), publishes the GitHub release with the APK
+#               attached, merges the release commit into the default branch
+#               and sets the next development version (e.g. 1.0.6-SNAPSHOT).
+#   4. cleanup  Deletes the temporary branch.
+#
+# Nothing is tagged, released or pushed to the default branch unless the build
+# and smoke test pass.
+
+on:
+  workflow_dispatch:
+    inputs:
+      next_bump:
+        description: 'Next development version after releasing'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
+
+# Never run two releases at once (they would race on the tag and the bump).
+concurrency:
+  group: release-apk
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    # Releases are cut from the default branch only.
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      sha: ${{ steps.release.outputs.sha }}
+
+    steps:
+      - name: Checkout default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Create release commit
+        id: release
+        run: |
+          # Fails unless the manifest holds a -SNAPSHOT version.
+          VERSION="$(.github/scripts/version.sh release)"
+          echo "VERSION $VERSION"
+
+          if git ls-remote --exit-code --tags origin "refs/tags/$VERSION" > /dev/null 2>&1; then
+            echo "::error::Tag $VERSION already exists. Set the next development version in AndroidManifest.xml (e.g. .github/scripts/version.sh bump patch) and merge that first."
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore: release $VERSION"
+          # Temporary branch, deleted by the cleanup job. Forced so a leftover
+          # from an earlier failed run cannot block this one.
+          git push --force origin "HEAD:refs/heads/release-$VERSION"
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "Releasing $VERSION from $(git rev-parse --short HEAD)"
+
+  build:
+    needs: prepare
+    uses: ./.github/workflows/android-build.yml
+    with:
+      ref: ${{ needs.prepare.outputs.sha }}
+
+  release:
+    needs: [prepare, build]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ needs.prepare.outputs.version }}
+      RELEASE_SHA: ${{ needs.prepare.outputs.sha }}
+      BRANCH: ${{ github.event.repository.default_branch }}
+      NEXT_BUMP: ${{ inputs.next_bump }}
+
+    steps:
+      - name: Checkout default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: VoltAir-APK
+
+      - name: Create tag and GitHub release
+        run: |
+          mv VoltAir.apk "ai.elimu.voltair-$VERSION.apk"
+          gh release create "$VERSION" "ai.elimu.voltair-$VERSION.apk" \
+            --target "$RELEASE_SHA" \
+            --title "$VERSION" \
+            --generate-notes \
+            --notes "Debug-signed APK, intended for testing."
+
+      - name: Merge release and set next development version
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # The default branch may have moved while the build was running. A
+          # fast-forward is used when it has not; otherwise a merge commit.
+          if ! git merge --no-edit -m "Merge release $VERSION" "$RELEASE_SHA"; then
+            git merge --abort || true
+            echo "::warning::Could not merge release $VERSION into $BRANCH (conflict, probably someone changed the version meanwhile). The release is published; set the next development version by hand."
+            exit 0
+          fi
+
+          CURRENT="$(.github/scripts/version.sh get)"
+          if [ "$CURRENT" != "$VERSION" ]; then
+            git reset --hard "origin/$BRANCH"
+            echo "::warning::After merging, the version is $CURRENT, not $VERSION. Skipping the automatic bump; set the next development version by hand."
+            exit 0
+          fi
+
+          NEXT="$(.github/scripts/version.sh bump "$NEXT_BUMP")"
+          git commit -am "chore: start $NEXT development [skip ci]"
+          git push origin "HEAD:$BRANCH"
+          echo "Released $VERSION, now on $NEXT"
+
+  cleanup:
+    needs: [prepare, build, release]
+    # Also runs when the build or release failed, so no branch is left behind.
+    if: ${{ always() && needs.prepare.result == 'success' }}
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ needs.prepare.outputs.version }}
+
+    steps:
+      - name: Delete temporary release branch
+        run: |
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/release-$VERSION" \
+            || echo "Branch release-$VERSION was already gone"
