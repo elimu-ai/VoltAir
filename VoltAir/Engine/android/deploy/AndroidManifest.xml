@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<manifest android:versionCode="1000006" android:versionName="1.0.6-SNAPSHOT" package="ai.elimu.voltair" xmlns:android="http://schemas.android.com/apk/res/android" android:installLocation="auto">
+<manifest android:versionCode="1000007" android:versionName="1.0.7-SNAPSHOT" package="ai.elimu.voltair" xmlns:android="http://schemas.android.com/apk/res/android" android:installLocation="auto">
 
     <!-- TODO: What screen sizes do we actually support? -->
     <supports-screens android:anyDensity="true" android:smallScreens="true" android:normalScreens="true" android:largeScreens="true"/>
