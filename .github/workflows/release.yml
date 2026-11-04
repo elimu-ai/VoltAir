@@ -61,6 +61,7 @@ jobs:
         run: |
           # Fails unless the manifest holds a -SNAPSHOT version.
           VERSION="$(.github/scripts/version.sh release)"
+          echo "VERSION $VERSION"
 
           if git ls-remote --exit-code --tags origin "refs/tags/$VERSION" > /dev/null 2>&1; then
             echo "::error::Tag $VERSION already exists. Set the next development version in AndroidManifest.xml (e.g. .github/scripts/version.sh bump patch) and merge that first."
