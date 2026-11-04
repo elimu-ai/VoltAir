@@ -10,7 +10,7 @@ See Wiki: [`LETTER_IDENTIFICATION.md`](https://github.com/elimu-ai/wiki/blob/mai
 
 ## Demo Videos 🎥
 
-[![](https://i.ytimg.com/vi/CIBPmyaKbuk/hqdefault.jpg)](https://youtu.be/CIBPmyaKbuk)
+https://github.com/user-attachments/assets/7de9cb0d-b066-4ea3-b78c-837b6f74d4ae
 
 ## Installation
 
@@ -24,6 +24,10 @@ See documentation at [doc/src/gettingStarted](doc/src/gettingStarted)
 
   [Qt Quick]: http://qt-project.org/doc/qt-5/qtquick-index.html
   [Liquidfun]: http://google.github.io/liquidfun/
+
+## Release
+
+To trigger a release, press "Run workflow" at https://github.com/elimu-ai/VoltAir/actions/workflows/release.yml
 
 ---
 

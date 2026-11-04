@@ -111,8 +111,8 @@ jobs:
 
       - name: Create tag and GitHub release
         run: |
-          mv VoltAir.apk "VoltAir-$VERSION.apk"
-          gh release create "$VERSION" "VoltAir-$VERSION.apk" \
+          mv VoltAir.apk "ai.elimu.voltair-$VERSION.apk"
+          gh release create "$VERSION" "ai.elimu.voltair-$VERSION.apk" \
             --target "$RELEASE_SHA" \
             --title "$VERSION" \
             --generate-notes \
