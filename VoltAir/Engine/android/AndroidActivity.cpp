@@ -39,6 +39,7 @@
 #include "inputs/InputArea.h"
 
 #define JAVA_PACKAGE_PREFIX "org/literacyapp/"
+#define JAVA_ACTIVITY_PACKAGE_PREFIX "ai/elimu/"
 
 QMap<int, JoystickAxisCode> AndroidActivity::sGamepadJoystickAxisConversionMap({
             { AMOTION_EVENT_AXIS_X, LEFT_ANALOG_X },
@@ -440,7 +441,7 @@ jclass AndroidActivity::getActivityClass(JNIEnv* jni, jobject activity)  {
         // TODO: remove voltAir reference.
         sActivityClass = reinterpret_cast<jclass>(jni->NewGlobalRef(
                 (activity) ? jni->GetObjectClass(activity)
-                           : jni->FindClass("ai/elimu/voltair/VoltAirActivity")));
+                           : jni->FindClass(JAVA_ACTIVITY_PACKAGE_PREFIX "voltair/VoltAirActivity")));
         assert(sActivityClass);
     }
     return sActivityClass;
