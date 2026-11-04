@@ -11,7 +11,11 @@ jobs:
     runs-on: ubuntu-22.04
 
     env:
-      DISPLAY: ':99.0'
+      QT_VERSION: '6.7.3'
+      ANDROID_PLATFORM: 'android-34'
+      ANDROID_BUILD_TOOLS: '34.0.0'
+      ANDROID_NDK_VERSION: '26.1.10909125'
+      ANDROID_NDK_PLATFORM: 'android-26'
 
     steps:
       - name: Checkout repository
@@ -22,118 +26,49 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          # Qt 5.8 + ant + legacy `tools/android` requires JDK 8.
-          # JDK 11 breaks ant builds (source/target 1.5-1.6 unsupported).
           distribution: 'temurin'
-          java-version: '8'
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          # NOTE: python2.7 is not available on ubuntu-22.04; the build script
-          # runs on python3 (see build/build_android_debug_travis.py).
-          sudo apt-get install -y p7zip-full ant lib32z1-dev lib32stdc++6
-
-      - name: Start Xvfb
-        run: |
-          sudo apt-get install -y xvfb
-          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+          java-version: '17'
 
       - name: Set up Qt
         run: |
-          export WORKDIR=$PWD
+          python3 -m pip install --user aqtinstall==3.3.0
+          python3 -m aqt install-qt --outputdir "$PWD/Qt" linux android "$QT_VERSION" android_armv7 --autodesktop --modules qtmultimedia
+          echo "QT_HOME=$PWD/Qt/$QT_VERSION" >> "$GITHUB_ENV"
+          echo "$PWD/Qt/$QT_VERSION/android_armv7/bin" >> "$GITHUB_PATH"
 
-          # Download and set up Qt (using the same script from Travis)
-          ./travisScripts/qt-5.8-android
-          cat qt-5.8.0-android-travis.env
-          # Fail fast with an actionable message if NDK extraction broke
-          # (regression test for issue #76).
-          test -x ./android-ndk-r9/ndk-build || { echo "::error::android-ndk-r9/ndk-build missing after setup (issue #76)"; ls -la; exit 1; }
-          test -x ./android-ndk-r14b/ndk-build || { echo "::error::android-ndk-r14b/ndk-build missing after setup"; ls -la; exit 1; }
-          source qt-5.8.0-android-travis.env
-          ls "$QT_ROOT"
-          # Persist Qt, SDK and NDK exports for subsequent steps.
-          # NOTE (issue #76): $GITHUB_ENV expects "VAR=VALUE" lines, NOT
-          # "export VAR=VALUE". Appending the file verbatim created variables
-          # literally named "export QT_HOME" etc., leaving $QT_HOME,
-          # $ANDROID_NDK9_ROOT, ... empty in later steps, which turned the
-          # liquidfun build command into "/ndk-build" -> "No such file or
-          # directory". Strip the leading "export " before persisting.
-          # PATH is excluded here (it goes via GITHUB_PATH below).
-          grep -v '^export PATH=' qt-5.8.0-android-travis.env | sed 's/^export //' >> $GITHUB_ENV
-          # PATH entries go via GITHUB_PATH, not GITHUB_ENV.
-          echo "$QT_HOME/android_armv7/bin" >> $GITHUB_PATH
-
-      - name: Install legacy SDK for Qt 5.8
+      - name: Install Android SDK and NDK
         run: |
           set -e
-          # Qt 5.8 androiddeployqt hard-requires legacy SDK `tools/android`
-          # (removed in SDK Tools 26+). GH ubuntu-22.04 runners only ship
-          # cmdline-tools, so androiddeployqt aborts with:
-          #   "Cannot find Android tool: .../sdk/tools/android" (exit 13).
-          # Restore tools_r25.2.5 (last release with tools/android) plus
-          # the android-18 platform and ant-compatible build-tools.
           SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
-          echo "SDK_ROOT=$SDK_ROOT"
-          ls "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
-          if [ ! -x "$SDK_ROOT/tools/android" ]; then
-            echo "Installing legacy SDK Tools r25.2.5..."
-            wget -q https://dl.google.com/android/repository/tools_r25.2.5-linux.zip -O /tmp/tools_r25.zip
-            sudo unzip -qq -o /tmp/tools_r25.zip -d "$SDK_ROOT"
-            rm -f /tmp/tools_r25.zip
-          fi
-          # sudo unzip leaves root-owned 744 perms (rwxr--r--) so `runner`
-          # can't execute tools/android (log showed file present but
-          # `test -x` failed). Fix exec bits; re-runnable for cached runs.
-          sudo chmod -R a+rx "$SDK_ROOT/tools"
-          test -x "$SDK_ROOT/tools/android" || { echo "::error::tools/android still missing after install"; ls -la "$SDK_ROOT/tools" || true; exit 1; }
-          echo "Accepting SDK licenses..."
-          yes | sudo "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
-          echo "Installing android-18 platform + build-tools..."
-          sudo "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-18" "build-tools;26.0.2" "platform-tools"
-          # ant auto-selects the newest build-tools dir; modern ones (e.g.
-          # 37.0.0) removed `dx`, causing "Cannot run program .../dx"
-          # (error=2). Prune to ant-compatible 26.0.2 only.
-          echo "Pruning modern build-tools (incompatible with ant)..."
-          for d in "$SDK_ROOT"/build-tools/*; do
-            ver="$(basename "$d")"
-            if [ "$ver" != "26.0.2" ]; then
-              echo "Removing build-tools/$ver..."
-              sudo rm -rf "$d"
-            fi
-          done
-          sudo chmod -R a+rx "$SDK_ROOT/build-tools/26.0.2"
-          test -x "$SDK_ROOT/build-tools/26.0.2/dx" || { echo "::error::dx missing in 26.0.2"; ls -la "$SDK_ROOT/build-tools/26.0.2" || true; exit 1; }
-          test -x "$SDK_ROOT/build-tools/26.0.2/aapt" || { echo "::error::aapt missing in 26.0.2"; ls -la "$SDK_ROOT/build-tools/26.0.2" || true; exit 1; }
-          test -f "$SDK_ROOT/platforms/android-18/android.jar" || { echo "::error::android-18 platform missing"; ls "$SDK_ROOT/platforms" || true; exit 1; }
-          ls "$SDK_ROOT/tools/android" "$SDK_ROOT/platforms/android-18/android.jar"
+          SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$SDKMANAGER"
+          yes | sudo "$SDKMANAGER" --licenses > /dev/null || true
+          sudo "$SDKMANAGER" "platform-tools" "platforms;$ANDROID_PLATFORM" "build-tools;$ANDROID_BUILD_TOOLS" "ndk;$ANDROID_NDK_VERSION"
+          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_ROOT=$SDK_ROOT/ndk/$ANDROID_NDK_VERSION" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$SDK_ROOT/ndk/$ANDROID_NDK_VERSION" >> "$GITHUB_ENV"
+          echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+          test -x "$SDK_ROOT/ndk/$ANDROID_NDK_VERSION/ndk-build"
+          test -f "$SDK_ROOT/platforms/$ANDROID_PLATFORM/android.jar"
 
       - name: Build Android APK
         run: |
-          export JDK=$JAVA_HOME
-          export WORKDIR=$PWD
-
-          # Fail fast if env propagation from "Set up Qt" broke (issue #76).
-          # Without this, an empty $ANDROID_NDK9_ROOT turns the liquidfun
-          # build command into "/ndk-build" with a cryptic
-          # "OSError: [Errno 2] No such file or directory".
-          : "${QT_HOME:?QT_HOME is empty - Qt setup / GITHUB_ENV propagation failed (issue #76)}"
+          : "${QT_HOME:?QT_HOME is empty}"
           : "${ANDROID_SDK_ROOT:?ANDROID_SDK_ROOT is empty}"
           : "${ANDROID_NDK_ROOT:?ANDROID_NDK_ROOT is empty}"
-          : "${ANDROID_NDK9_ROOT:?ANDROID_NDK9_ROOT is empty - NDK R9 setup failed (issue #76)}"
-          test -x "$ANDROID_NDK9_ROOT/ndk-build" || { echo "::error::ndk-build not found at $ANDROID_NDK9_ROOT/ndk-build (issue #76)"; ls -la "$ANDROID_NDK9_ROOT" || ls -la; exit 1; }
-          test -x "$QT_HOME/android_armv7/bin/qmake" || { echo "::error::qmake not found at $QT_HOME/android_armv7/bin/qmake"; ls -la "$QT_HOME" || true; exit 1; }
+          test -x "$ANDROID_NDK_ROOT/ndk-build"
+          test -x "$QT_HOME/android_armv7/bin/qmake"
 
-          # Run the build script with the same parameters
           python3 build/build_android_debug_travis.py \
             --build-dir=bin \
-            --qt-root=$QT_HOME \
-            --voltair-root=$PWD \
-            --jdk=$JDK \
-            --sdk-root=$ANDROID_SDK_ROOT \
-            --ndk-root=$ANDROID_NDK_ROOT \
-            --ndk-rootR9=$ANDROID_NDK9_ROOT \
-            --ant=/usr/bin/ant \
+            --qt-root="$QT_HOME" \
+            --voltair-root="$PWD" \
+            --jdk="$JAVA_HOME" \
+            --sdk-root="$ANDROID_SDK_ROOT" \
+            --ndk-root="$ANDROID_NDK_ROOT" \
+            --ndk-platform="$ANDROID_NDK_PLATFORM" \
+            --android-platform="$ANDROID_PLATFORM" \
             --liquidfun-root=./third_party/liquidfun/liquidfun \
             --output-apk=VoltAir.apk \
             --num-processes=2

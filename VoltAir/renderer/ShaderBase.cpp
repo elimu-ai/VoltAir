@@ -15,6 +15,7 @@
  */
 
 #include "ShaderBase.h"
+#include <QDebug>
 
 ShaderBase::ShaderBase(const std::string& vertexShaderCode, const std::string& fragmentShaderCode,
         const AttributeSetPtr& attributes, const std::vector<std::string>& uniformNames)
@@ -169,7 +170,8 @@ void ShaderBase::compileCode() {
     glGetProgramiv(mProgramId, GL_LINK_STATUS, &status);
     mValid = status != 0;
     if (!mValid) {
-        printf("ShaderBase failed to compile.");
+        // Shader failures were previously silent (printf never reaches logcat).
+        qWarning() << "VoltAir GL shader link failed:" << getErrorLog().c_str();
     }
 }
 

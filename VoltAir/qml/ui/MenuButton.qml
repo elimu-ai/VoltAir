@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import QtGraphicalEffects 1.0
 import QtQuick 2.2
 import VoltAir 1.0
 
@@ -55,7 +54,7 @@ KeyNavFocusArea {
             anchors.centerIn: parent
             anchors.verticalCenterOffset: -0.08 * height
             textElement.text: buttonText
-            dropShadow.color: inactiveColor
+            dropShadow.shadowColor: inactiveColor
         }
     }
 
@@ -77,12 +76,12 @@ KeyNavFocusArea {
         if (activeFocus) {
             menuItem.scale = 1.0
             menuItem.source = Util.getPathToImage("UI/buttonhighlight.png")
-            text.dropShadow.color = text.activeColor
+            text.dropShadow.shadowColor = text.activeColor
             Engine.getSoundManager().playSoundEffect(Util.getPathToSound("btn_highlight.wav"))
         } else {
             menuItem.source = Util.getPathToImage("UI/buttonBlue.png")
             menuItem.scale = 0.9
-            text.dropShadow.color = text.inactiveColor
+            text.dropShadow.shadowColor = text.inactiveColor
         }
     }
 

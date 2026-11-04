@@ -306,7 +306,10 @@ UiInternal {
         // When the splash screen is completely visible, we will automatically shut it down.
         onShowCompleted: {
             root.openingCinematicCompleted()
-            hide(transitionDuration)
+            // Defer the state change out of the running transition. Changing
+            // state synchronously from a transition's own actions stalls the
+            // new transition under Qt 6.
+            Qt.callLater(function() { splashScreen.hide(transitionDuration) })
         }
 
         // When the splash screen is completely hidden, we will begin to fade in the level menu.
@@ -571,7 +574,8 @@ UiInternal {
 
         // When the reward screen is completely visible, we will automatically shut it down.
         onShowCompleted: {
-            hide(transitionDuration)
+            // See splashScreen: defer the state change out of the transition.
+            Qt.callLater(function() { hide(transitionDuration) })
         }
 
         // When the reward screen is completely hidden, we will begin to fade in the level menu.

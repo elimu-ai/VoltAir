@@ -30,7 +30,6 @@
 #include <cassert>
 #include <cmath>
 #include "Engine.h"
-#include <QtAndroidExtras/QtAndroidExtras>
 // TODO: remove references to Game from this module.
 #include "Game.h"
 #include "LevelProgression.h"

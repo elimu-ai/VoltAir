@@ -339,8 +339,6 @@ UiComponent {
         buttonText: TR.value("finish")
 
         focusLeft: retryButton
-        focusRight: pgsButton
-        focusUp: pgsButton
 
         onReleased: {
             root.startMenuRequested()

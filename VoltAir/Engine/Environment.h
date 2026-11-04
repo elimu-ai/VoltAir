@@ -20,9 +20,8 @@
 #include <QObject>
 #include <QQmlListProperty>
 #include <QString>
-
+#include "LevelProgression.h"
 class LevelInfo;
-class LevelProgression;
 
 /**
  * @ingroup Engine

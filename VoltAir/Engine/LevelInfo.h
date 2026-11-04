@@ -19,8 +19,7 @@
 
 #include <QObject>
 #include <QString>
-
-class Environment;
+#include "Environment.h"
 
 /**
  * @ingroup Engine

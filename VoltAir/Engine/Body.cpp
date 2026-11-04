@@ -360,15 +360,15 @@ void Body::appendJoint(QQmlListProperty<Joint>* property, Joint* value) {
     static_cast<Body*>(property->object)->addJoint(value);
 }
 
-Joint* Body::jointAt(QQmlListProperty<Joint>* property, int index) {
-    return static_cast<Body*>(property->object)->getJoint(index);
+Joint* Body::jointAt(QQmlListProperty<Joint>* property, qsizetype index) {
+    return static_cast<Body*>(property->object)->getJoint(static_cast<int>(index));
 }
 
 void Body::clearJoints(QQmlListProperty<Joint>* property) {
     static_cast<Body*>(property->object)->clearJoints();
 }
 
-int Body::countJoints(QQmlListProperty<Joint>* property) {
+qsizetype Body::countJoints(QQmlListProperty<Joint>* property) {
     return static_cast<Body*>(property->object)->getJointCount();
 }
 

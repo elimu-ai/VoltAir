@@ -163,7 +163,6 @@ UiComponent {
         }
 
         focusLeft: muteButton
-        focusRight: pgsButton
         focusUp: muteButton
 
         onEscaped: {

@@ -15,6 +15,7 @@
  */
 
 import QtQuick 2.2
+import QtQuick.Effects
 import VoltAir 1.0
 
 /**
@@ -33,38 +34,28 @@ Item {
      */
     property Item maskItem
 
-    ShaderEffect {
-        id: effect
-
-        property variant src: ShaderEffectSource {
-            sourceItem: root.sourceItem
-            // Take a center clipping.
-            sourceRect: Qt.rect(sourceItem.width / 2.0 - effect.width / 2.0,
-                    sourceItem.height / 2.0 - effect.height / 2.0, effect.width, effect.height)
-            hideSource: true
-            recursive: true
+    // Mirror the original hideSource:true behavior for both inputs: the
+    // source and mask items are texture inputs only and must not render
+    // directly, otherwise the raw mask color shows through.
+    // The mask is a BorderImage, which MultiEffect cannot sample directly;
+    // forcing a layer makes it usable as a texture source.
+    function updateVisibility() {
+        if (sourceItem) {
+            sourceItem.visible = false
         }
-
-        property variant mask: ShaderEffectSource {
-            sourceItem: root.maskItem
-            // Take a center clipping.
-            sourceRect: Qt.rect(sourceItem.width / 2.0 - effect.width / 2.0,
-                    sourceItem.height / 2.0 - effect.height / 2.0, effect.width, effect.height)
-            hideSource: true
-            recursive: true
+        if (maskItem) {
+            maskItem.visible = false
+            maskItem.layer.enabled = true
         }
+    }
+    onSourceItemChanged: updateVisibility()
+    onMaskItemChanged: updateVisibility()
+    Component.onCompleted: updateVisibility()
 
+    MultiEffect {
         anchors.fill: parent
-
-        fragmentShader: "
-            varying highp vec2 qt_TexCoord0;
-            uniform sampler2D src;
-            uniform sampler2D mask;
-            uniform lowp float qt_Opacity;
-            void main() {
-                lowp vec4 tex = texture2D(src, qt_TexCoord0);
-                lowp float texMask = texture2D(mask, qt_TexCoord0).a;
-                gl_FragColor = tex * qt_Opacity * texMask;
-            }"
+        source: root.sourceItem
+        maskEnabled: true
+        maskSource: root.maskItem
     }
 }

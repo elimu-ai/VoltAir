@@ -25,6 +25,7 @@ import android.content.pm.PackageManager.NameNotFoundException;
 import android.hardware.input.InputManager;
 import android.media.AudioManager;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Gravity;
@@ -41,11 +42,7 @@ import java.nio.charset.Charset;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.qtproject.qt5.android.bindings.QtActivity;
+import org.qtproject.qt.android.bindings.QtActivity;
 
 import java.util.ArrayList;
 import android.preference.PreferenceManager;
@@ -102,7 +99,11 @@ public class VoltAirActivity extends QtActivity implements InputManager.InputDev
         mStudentUpdateReceiver.setActivity(this);
         IntentFilter filter = new IntentFilter();
         filter.addAction("literacyapp.intent.action.STUDENT_UPDATED");
-        registerReceiver(mStudentUpdateReceiver, filter);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(mStudentUpdateReceiver, filter, Context.RECEIVER_EXPORTED);
+        } else {
+            registerReceiver(mStudentUpdateReceiver, filter);
+        }
         onApplicationCreate();
     }
 

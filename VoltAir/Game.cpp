@@ -41,9 +41,9 @@ Game::Game(QObject* parent)
 Game::~Game() {
 }
 
-void Game::init() {
+bool Game::init() {
     if (mIsInitialized) {
-        return;
+        return true;
     }
 
     // TODO: figure out if the game should be a subclass of the Engine.
@@ -55,6 +55,10 @@ void Game::init() {
     mUi = qobject_cast<UiInternal*>(uiComponent.create());
     for (QQmlError error : uiComponent.errors()) {
         qDebug() << "Error on Line" << error.line() << ":" << error.description();
+    }
+    if (!mUi) {
+        qCritical() << "Failed to create UI component";
+        return false;
     }
     Q_ASSERT(mUi);
     mUi->setFocus(true);
@@ -68,6 +72,10 @@ void Game::init() {
     mLevelProgressionList = qobject_cast<LevelProgressionList*>(levelProgressionList.create());
     for (QQmlError error : levelProgressionList.errors()) {
         qDebug() << "Error on Line" << error.line() << ":" << error.description();
+    }
+    if (!mLevelProgressionList) {
+        qCritical() << "Failed to create LevelProgressionList component";
+        return false;
     }
     Q_ASSERT(mLevelProgressionList);
     mPlayerProfile.setLevelProgressionList(mLevelProgressionList);
@@ -129,6 +137,7 @@ void Game::init() {
     }
 
     mIsInitialized = true;
+    return true;
 }
 
 Game* Game::getInstance() {

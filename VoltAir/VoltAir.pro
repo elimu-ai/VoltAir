@@ -33,7 +33,7 @@ defined ( LIQUIDFUN ) {
 # Additional import path used to resolve QML modules in Creator's code model
 QML_IMPORT_PATH +=
 
-CONFIG += c++11
+CONFIG += c++17
 QT += multimedia qml quick
 DEFINES += GL_GLEXT_PROTOTYPES
 
