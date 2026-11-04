@@ -5,6 +5,13 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+  # Reused by release.yml so releases are built exactly like CI builds.
+  workflow_call:
+    inputs:
+      ref:
+        description: 'Commit to build (defaults to the triggering commit)'
+        type: string
+        default: ''
 
 jobs:
   build:
@@ -17,6 +24,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.ref }}
           submodules: 'recursive'
 
       - name: Setup Java
