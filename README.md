@@ -25,6 +25,10 @@ See documentation at [doc/src/gettingStarted](doc/src/gettingStarted)
   [Qt Quick]: http://qt-project.org/doc/qt-5/qtquick-index.html
   [Liquidfun]: http://google.github.io/liquidfun/
 
+## Release
+
+To trigger a release, press "Run workflow" at https://github.com/elimu-ai/VoltAir/actions/workflows/release.yml
+
 ---
 
 <p align="center">
