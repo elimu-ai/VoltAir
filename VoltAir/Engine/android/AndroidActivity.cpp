@@ -38,7 +38,7 @@
 #include "audio/SoundManager.h"
 #include "inputs/InputArea.h"
 
-#define JAVA_PACKAGE_PREFIX "org/literacyapp/"
+#define JAVA_SOUND_MANAGER_PACKAGE_PREFIX "org/literacyapp/"
 #define JAVA_ACTIVITY_PACKAGE_PREFIX "ai/elimu/"
 
 QMap<int, JoystickAxisCode> AndroidActivity::sGamepadJoystickAxisConversionMap({
@@ -320,7 +320,7 @@ jobject AndroidActivity::getSoundManager() {
     }
     jclass activityClass = getActivityClass(jni.getJNIEnv());
     jmethodID getSoundManagerMethod = jni->GetMethodID(activityClass, "getSoundManager",
-            "()L" JAVA_PACKAGE_PREFIX "utils/SoundManager;");
+            "()L" JAVA_SOUND_MANAGER_PACKAGE_PREFIX "utils/SoundManager;");
     return jni->CallObjectMethod(getActivity(), getSoundManagerMethod);
 }
 
@@ -451,7 +451,7 @@ jclass AndroidActivity::getSoundManagerClass(JNIEnv* jni, jobject soundManager) 
     if (!sSoundManagerClass) {
         sSoundManagerClass = reinterpret_cast<jclass>(jni->NewGlobalRef(
                 (soundManager) ? jni->GetObjectClass(soundManager)
-                               : jni->FindClass(JAVA_PACKAGE_PREFIX "utils/SoundManager")));
+                               : jni->FindClass(JAVA_SOUND_MANAGER_PACKAGE_PREFIX "utils/SoundManager")));
     }
     return sSoundManagerClass;
 }

@@ -168,9 +168,9 @@ android {
         $$PWD/android/deploy/res/values/voltairactivity_strings.xml \
         $$PWD/android/deploy/res/values/ids.xml \
         $$PWD/android/deploy/res/xml/voltair_tracker.xml \
-        $$PWD/android/deploy/src/org/literacyapp/voltair/VoltAirActivity.java \
+        $$PWD/android/deploy/src/ai/elimu/voltair/VoltAirActivity.java \
         $$PWD/android/deploy/src/org/literacyapp/utils/SoundManager.java \
-        $$PWD/android/deploy/src/org/literacyapp/voltair/StudentUpdateReceiver.java \
+        $$PWD/android/deploy/src/ai/elimu/voltair/StudentUpdateReceiver.java \
 
     LIBS += \
         $$LIQUIDFUN_DIR/Box2D/obj/local/armeabi-v7a/libliquidfun_static.a \
