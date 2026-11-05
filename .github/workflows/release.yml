@@ -153,6 +153,19 @@ jobs:
           fi
           test -x "$SDK_ROOT/build-tools/34.0.0/apksigner" || { echo "::error::apksigner missing in build-tools 34.0.0"; exit 1; }
 
+      # The ant build produces an unaligned APK (many uncompressed assets sit at
+      # offsets that are not 4-byte aligned). sign-android-release only *checks*
+      # alignment (zipalign -c) and fails on an unaligned input, so align it here.
+      # Aligning has to happen before signing: apksigner signs the final bytes.
+      - name: Zipalign the APK
+        run: |
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          ZIPALIGN="$SDK_ROOT/build-tools/34.0.0/zipalign"
+          # Aligned outside apk-to-sign: the signing action expects exactly one APK there.
+          "$ZIPALIGN" -p -f 4 apk-to-sign/VoltAir.apk "$RUNNER_TEMP/VoltAir-aligned.apk"
+          "$ZIPALIGN" -c -v 4 "$RUNNER_TEMP/VoltAir-aligned.apk" | tail -n 1
+          mv -f "$RUNNER_TEMP/VoltAir-aligned.apk" apk-to-sign/VoltAir.apk
+
       - name: Sign the APK file
         uses: r0adkll/sign-android-release@v1
         id: sign_app
