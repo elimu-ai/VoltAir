@@ -20,4 +20,4 @@ adb install -r bin/voltAir-android_debug.apk
 
 # Launch the apk's activity.
 echo Launching...
-adb shell am start -n com.google.fpl.voltair/com.google.fpl.voltair.VoltAirActivity
+adb shell am start -n ai.elimu.voltair/ai.elimu.voltair.VoltAirActivity

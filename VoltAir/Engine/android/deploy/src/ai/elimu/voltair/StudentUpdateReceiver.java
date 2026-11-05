@@ -1,4 +1,4 @@
-package org.literacyapp.voltair;
+package ai.elimu.voltair;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
