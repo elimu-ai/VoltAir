@@ -245,7 +245,34 @@ jobs:
       VERSION: ${{ needs.prepare.outputs.version }}
 
     steps:
+      # The webapp rejects APKs with a minSdkVersion below 26 (MIN_SDK_VERSION in
+      # ApplicationVersionCreateController), so a request for such an APK can
+      # never succeed. Skip the notification instead of failing every release
+      # until the app's minSdkVersion is raised to 26 or higher.
+      - name: Checkout the release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.version }}
+          sparse-checkout: VoltAir/Engine/android/deploy/AndroidManifest.xml
+          sparse-checkout-cone-mode: false
+
+      - name: Check that the webapp accepts the minSdkVersion
+        id: sdk
+        env:
+          WEBAPP_MIN_SDK_VERSION: 26
+        run: |
+          MIN_SDK="$(sed -n 's/.*android:minSdkVersion="\([0-9]*\)".*/\1/p' VoltAir/Engine/android/deploy/AndroidManifest.xml | head -n 1)"
+          [ -n "$MIN_SDK" ] || { echo "::error::Could not read android:minSdkVersion from AndroidManifest.xml"; exit 1; }
+          echo "minSdkVersion $MIN_SDK (webapp requires at least $WEBAPP_MIN_SDK_VERSION)"
+          if [ "$MIN_SDK" -lt "$WEBAPP_MIN_SDK_VERSION" ]; then
+            echo "::notice::Not notifying the webapps: minSdkVersion $MIN_SDK is below $WEBAPP_MIN_SDK_VERSION, which the webapp rejects."
+            echo "accepted=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "accepted=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Prepare the APK file URL
+        if: steps.sdk.outputs.accepted == 'true'
         id: apk_file_url
         run: |
           APK_FILE_URL="https://github.com/$GITHUB_REPOSITORY/releases/download/$VERSION/ai.elimu.voltair-$VERSION.apk"
@@ -253,6 +280,7 @@ jobs:
           echo "apk_file_url=$APK_FILE_URL" >> "$GITHUB_OUTPUT"
 
       - name: Send HTTP request to `${{ matrix.language_code }}.elimu.ai`
+        if: steps.sdk.outputs.accepted == 'true'
         uses: fjogeleit/http-request-action@v2
         with:
           url: http://${{ matrix.language_code }}.elimu.ai/rest/v2/applications/ai.elimu.voltair/application-versions/${{ needs.prepare.outputs.version }}
