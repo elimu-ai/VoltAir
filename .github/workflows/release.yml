@@ -15,7 +15,10 @@ name: Release APK
 #               existing tags), publishes the GitHub release with the signed
 #               APK attached, merges the release commit into the default branch
 #               and sets the next development version (e.g. 1.0.6-SNAPSHOT).
-#   4. cleanup  Deletes the temporary branch.
+#   4. notify_webapp_api
+#               Tells each elimu.ai webapp (eng, hin, tgl, tha, vie) about the
+#               new version and the URL of the signed APK on the release.
+#   5. cleanup  Deletes the temporary branch.
 #
 # Nothing is tagged, released or pushed to the default branch unless the build
 # and smoke test pass and the APK has been signed.
@@ -226,6 +229,37 @@ jobs:
           git commit -am "chore: start $NEXT development [skip ci]"
           git push origin "HEAD:$BRANCH"
           echo "Released $VERSION, now on $NEXT"
+
+  # Tells the elimu.ai webapps that a new version of the app is available, by
+  # sending the URL of the signed APK on the GitHub release (same as the other
+  # elimu.ai Android apps, e.g. elimu-ai/vitabu). Only runs when the release
+  # job succeeded. One language at a time, so a failure is easy to pinpoint.
+  notify_webapp_api:
+    needs: [prepare, release]
+    strategy:
+      max-parallel: 1
+      matrix:
+        language_code: [ eng, hin, tgl, tha, vie ]
+    runs-on: ubuntu-22.04
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+
+    steps:
+      - name: Prepare the APK file URL
+        id: apk_file_url
+        run: |
+          APK_FILE_URL="https://github.com/$GITHUB_REPOSITORY/releases/download/$VERSION/ai.elimu.voltair-$VERSION.apk"
+          echo "APK_FILE_URL $APK_FILE_URL"
+          echo "apk_file_url=$APK_FILE_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Send HTTP request to `${{ matrix.language_code }}.elimu.ai`
+        uses: fjogeleit/http-request-action@v2
+        with:
+          url: http://${{ matrix.language_code }}.elimu.ai/rest/v2/applications/ai.elimu.voltair/application-versions/${{ needs.prepare.outputs.version }}
+          method: PUT
+          data: '{"fileUrl": "${{ steps.apk_file_url.outputs.apk_file_url }}"}'
+          customHeaders: '{"Content-Type": "application/json"}'
+          timeout: 60000
 
   cleanup:
     needs: [prepare, build, release]
