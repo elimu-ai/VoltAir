@@ -49,7 +49,11 @@ script's options with the `--help` option. For example:
     --sdk-root SDK_ROOT   Android SDK location
     --ndk-root NDK_ROOT   Android NDK location
     --ndk-platform NDK_PLATFORM
-                            Android platform (must be >= android-18)
+                            Android NDK platform for native code (must be >= android-18)
+    --android-platform ANDROID_PLATFORM
+                            Android SDK platform to compile the Java code against
+                            (default android-20; should be >= the targetSdkVersion in
+                            AndroidManifest.xml)
     --ant ANT             ant binary location
     --num-processes NUM_PROCESSES
                             Number of processes to use for 'make'

@@ -143,7 +143,7 @@ def RunMakeInstall():
                  "install", "INSTALL_ROOT=%s/android-build" % os.getcwd()])
 
 
-def RunAndroidDeployQt(qt_root, voltair_root, build_dir, ant, ndk_platform,
+def RunAndroidDeployQt(qt_root, voltair_root, build_dir, ant, android_platform,
                        jdk, keystore, key, password):
   """Run the 'androiddeployqt' command.
 
@@ -152,7 +152,7 @@ def RunAndroidDeployQt(qt_root, voltair_root, build_dir, ant, ndk_platform,
     voltair_root: VoltAir project location.
     build_dir: Directory in which app was built. Need to run command here.
     ant: And location
-    ndk_platform: Android platform (e.g. android-18)
+    android_platform: Android SDK platform to compile against (e.g. android-20)
     jdk: Java Development Kit location
   """
   androiddeployqt = [
@@ -167,7 +167,7 @@ def RunAndroidDeployQt(qt_root, voltair_root, build_dir, ant, ndk_platform,
       ant,
       "--release",
       "--android-platform",
-      ndk_platform,
+      android_platform,
       "--jdk",
       jdk,
       "--sign",
@@ -222,7 +222,10 @@ def main():
   parser.add_argument("--sdk-root", required=True, help="Android SDK location")
   parser.add_argument("--ndk-root", required=True, help="Android NDK location")
   parser.add_argument("--ndk-platform", default="android-18",
-                      help="Android platform (must be >= android-18)")
+                      help="Android NDK platform for native code (must be >= android-18)")
+  parser.add_argument("--android-platform", default="android-20",
+                      help="Android SDK platform to compile the Java code against "
+                           "(should be >= the targetSdkVersion in AndroidManifest.xml)")
   parser.add_argument("--ant", required=True, help="ant binary location")
   parser.add_argument("--num-processes", default="1",
                       help="Number of processes to use for 'make'")
@@ -289,7 +292,7 @@ def main():
     # the other files specified in the Qt project (e.g. java files,
     # AndroidManifest.xml, and so on).
     RunAndroidDeployQt(qt_root, voltair_root, build_dir, parsed_args.ant,
-                       parsed_args.ndk_platform, parsed_args.jdk, 
+                       parsed_args.android_platform, parsed_args.jdk, 
                        keyStore, key, password)
 
     # The 'androiddeployqt' executable leaves the APK in

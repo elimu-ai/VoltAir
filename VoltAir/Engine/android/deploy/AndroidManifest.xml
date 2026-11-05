@@ -5,7 +5,7 @@
     <supports-screens android:anyDensity="true" android:smallScreens="true" android:normalScreens="true" android:largeScreens="true"/>
 
     <!-- TODO: If we want to support lower APIs, remove dependencies on API 19 -->
-    <uses-sdk android:minSdkVersion="18" android:targetSdkVersion="19"/>
+    <uses-sdk android:minSdkVersion="18" android:targetSdkVersion="20"/>
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.GET_ACCOUNTS"/>
