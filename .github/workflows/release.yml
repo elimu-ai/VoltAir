@@ -10,14 +10,25 @@ name: Release APK
 #               never 1.0.5-SNAPSHOT.
 #   2. build    Builds that commit via android-build.yml (including the
 #               emulator smoke test).
-#   3. release  Tags the release commit (e.g. 1.0.5, no "v" prefix, like the
-#               existing tags), publishes the GitHub release with the APK
-#               attached, merges the release commit into the default branch
+#   3. release  Signs the APK with the organization's release keystore, tags
+#               the release commit (e.g. 1.0.5, no "v" prefix, like the
+#               existing tags), publishes the GitHub release with the signed
+#               APK attached, merges the release commit into the default branch
 #               and sets the next development version (e.g. 1.0.6-SNAPSHOT).
 #   4. cleanup  Deletes the temporary branch.
 #
 # Nothing is tagged, released or pushed to the default branch unless the build
-# and smoke test pass.
+# and smoke test pass and the APK has been signed.
+#
+# Signing uses the same organization-wide secrets as the other elimu.ai
+# Android apps (e.g. elimu-ai/vitabu):
+#   SIGN_ANDROID_KEY                 base64-encoded keystore
+#   SIGN_ANDROID_ALIAS               key alias
+#   SIGN_ANDROID_KEY_STORE_PASSWORD  keystore password
+#   SIGN_ANDROID_KEY_PASSWORD        key password
+# The organization secrets must be made available to this repository.
+# The emulator smoke test runs on the debug-signed build; signing only
+# re-signs the same APK contents.
 
 on:
   workflow_dispatch:
@@ -51,6 +62,24 @@ jobs:
       sha: ${{ steps.release.outputs.sha }}
 
     steps:
+      # Fail before anything is pushed or built if the APK could not be signed
+      # later, instead of after a long build.
+      - name: Check that signing secrets are available
+        env:
+          SIGN_ANDROID_KEY: ${{ secrets.SIGN_ANDROID_KEY }}
+          SIGN_ANDROID_ALIAS: ${{ secrets.SIGN_ANDROID_ALIAS }}
+          SIGN_ANDROID_KEY_STORE_PASSWORD: ${{ secrets.SIGN_ANDROID_KEY_STORE_PASSWORD }}
+          SIGN_ANDROID_KEY_PASSWORD: ${{ secrets.SIGN_ANDROID_KEY_PASSWORD }}
+        run: |
+          missing=0
+          for name in SIGN_ANDROID_KEY SIGN_ANDROID_ALIAS SIGN_ANDROID_KEY_STORE_PASSWORD SIGN_ANDROID_KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Secret $name is empty or not available to this repository (organization secrets must be shared with VoltAir)."
+              missing=1
+            fi
+          done
+          exit "$missing"
+
       - name: Checkout default branch
         uses: actions/checkout@v4
         with:
@@ -109,14 +138,56 @@ jobs:
         with:
           name: VoltAir-APK
 
-      - name: Create tag and GitHub release
+      # The build produces a debug-signed APK. Replace that signature with the
+      # release key (zipalign + apksigner, done by the action) before tagging.
+      - name: Move APK to its own directory for signing
         run: |
-          mv VoltAir.apk "ai.elimu.voltair-$VERSION.apk"
+          mkdir -p apk-to-sign
+          mv VoltAir.apk apk-to-sign/VoltAir.apk
+
+      - name: Install Android build-tools 34.0.0 if missing
+        run: |
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          if [ ! -x "$SDK_ROOT/build-tools/34.0.0/apksigner" ]; then
+            yes | sudo "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "build-tools;34.0.0" > /dev/null
+          fi
+          test -x "$SDK_ROOT/build-tools/34.0.0/apksigner" || { echo "::error::apksigner missing in build-tools 34.0.0"; exit 1; }
+
+      - name: Sign the APK file
+        uses: r0adkll/sign-android-release@v1
+        id: sign_app
+        with:
+          releaseDirectory: apk-to-sign
+          signingKeyBase64: ${{ secrets.SIGN_ANDROID_KEY }}
+          alias: ${{ secrets.SIGN_ANDROID_ALIAS }}
+          keyStorePassword: ${{ secrets.SIGN_ANDROID_KEY_STORE_PASSWORD }}
+          keyPassword: ${{ secrets.SIGN_ANDROID_KEY_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: "34.0.0"
+
+      - name: Verify the APK signature
+        env:
+          SIGNED_APK: ${{ steps.sign_app.outputs.signedReleaseFile }}
+        run: |
+          test -s "$SIGNED_APK" || { echo "::error::Signed APK not found: $SIGNED_APK"; exit 1; }
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          CERTS="$("$SDK_ROOT/build-tools/34.0.0/apksigner" verify --verbose --print-certs "$SIGNED_APK")"
+          echo "$CERTS"
+          # Never publish an APK that is still signed with the Android debug key.
+          if echo "$CERTS" | grep -qi "Android Debug"; then
+            echo "::error::APK is still signed with the Android debug certificate"
+            exit 1
+          fi
+
+      - name: Create tag and GitHub release
+        env:
+          SIGNED_APK: ${{ steps.sign_app.outputs.signedReleaseFile }}
+        run: |
+          mv "$SIGNED_APK" "ai.elimu.voltair-$VERSION.apk"
           gh release create "$VERSION" "ai.elimu.voltair-$VERSION.apk" \
             --target "$RELEASE_SHA" \
             --title "$VERSION" \
-            --generate-notes \
-            --notes "Debug-signed APK, intended for testing."
+            --generate-notes
 
       - name: Merge release and set next development version
         run: |
