@@ -10,12 +10,13 @@ name: Release APK
 #               never 1.0.5-SNAPSHOT.
 #   2. build    Builds that commit via android-build.yml (including the
 #               emulator smoke test).
-#   3. release  Signs the APK with the organization's release keystore, tags
-#               the release commit (e.g. 1.0.5, no "v" prefix, like the
+#   3. sign     Re-signs the built APK with the organization's release
+#               keystore and verifies the signature.
+#   4. release  Tags the release commit (e.g. 1.0.5, no "v" prefix, like the
 #               existing tags), publishes the GitHub release with the signed
 #               APK attached, merges the release commit into the default branch
 #               and sets the next development version (e.g. 1.0.6-SNAPSHOT).
-#   4. cleanup  Deletes the temporary branch.
+#   5. cleanup  Deletes the temporary branch.
 #
 # Nothing is tagged, released or pushed to the default branch unless the build
 # and smoke test pass and the APK has been signed.
@@ -114,36 +115,20 @@ jobs:
     with:
       ref: ${{ needs.prepare.outputs.sha }}
 
-  release:
+  # Replaces the debug signature of the built APK with the release signature.
+  # Kept in its own job so the signing secrets are only exposed here.
+  sign:
     needs: [prepare, build]
     runs-on: ubuntu-22.04
-    permissions:
-      contents: write
     env:
-      GH_TOKEN: ${{ github.token }}
       VERSION: ${{ needs.prepare.outputs.version }}
-      RELEASE_SHA: ${{ needs.prepare.outputs.sha }}
-      BRANCH: ${{ github.event.repository.default_branch }}
-      NEXT_BUMP: ${{ inputs.next_bump }}
 
     steps:
-      - name: Checkout default branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.repository.default_branch }}
-          fetch-depth: 0
-
       - name: Download APK
         uses: actions/download-artifact@v4
         with:
           name: VoltAir-APK
-
-      # The build produces a debug-signed APK. Replace that signature with the
-      # release key (zipalign + apksigner, done by the action) before tagging.
-      - name: Move APK to its own directory for signing
-        run: |
-          mkdir -p apk-to-sign
-          mv VoltAir.apk apk-to-sign/VoltAir.apk
+          path: apk-to-sign
 
       - name: Install Android build-tools 34.0.0 if missing
         run: |
@@ -178,12 +163,41 @@ jobs:
             echo "::error::APK is still signed with the Android debug certificate"
             exit 1
           fi
+          mv "$SIGNED_APK" "ai.elimu.voltair-$VERSION.apk"
+
+      - name: Upload signed APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoltAir-APK-signed
+          path: ai.elimu.voltair-${{ needs.prepare.outputs.version }}.apk
+          if-no-files-found: error
+
+  release:
+    needs: [prepare, sign]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ needs.prepare.outputs.version }}
+      RELEASE_SHA: ${{ needs.prepare.outputs.sha }}
+      BRANCH: ${{ github.event.repository.default_branch }}
+      NEXT_BUMP: ${{ inputs.next_bump }}
+
+    steps:
+      - name: Checkout default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+
+      - name: Download signed APK
+        uses: actions/download-artifact@v4
+        with:
+          name: VoltAir-APK-signed
 
       - name: Create tag and GitHub release
-        env:
-          SIGNED_APK: ${{ steps.sign_app.outputs.signedReleaseFile }}
         run: |
-          mv "$SIGNED_APK" "ai.elimu.voltair-$VERSION.apk"
           gh release create "$VERSION" "ai.elimu.voltair-$VERSION.apk" \
             --target "$RELEASE_SHA" \
             --title "$VERSION" \
