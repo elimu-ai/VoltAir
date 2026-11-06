@@ -1,11 +1,9 @@
 <?xml version="1.0"?>
 <manifest android:versionCode="2000002" android:versionName="2.0.2-SNAPSHOT" package="ai.elimu.voltair" xmlns:android="http://schemas.android.com/apk/res/android" android:installLocation="auto">
 
-    <!-- TODO: What screen sizes do we actually support? -->
     <supports-screens android:anyDensity="true" android:smallScreens="true" android:normalScreens="true" android:largeScreens="true"/>
 
-    <!-- TODO: If we want to support lower APIs, remove dependencies on API 19 -->
-    <uses-sdk android:minSdkVersion="18" android:targetSdkVersion="19"/>
+    <uses-sdk android:minSdkVersion="22" android:targetSdkVersion="22"/>
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.GET_ACCOUNTS"/>
