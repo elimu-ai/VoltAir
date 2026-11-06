@@ -3,7 +3,7 @@
 
     <supports-screens android:anyDensity="true" android:smallScreens="true" android:normalScreens="true" android:largeScreens="true"/>
 
-    <uses-sdk android:minSdkVersion="18" android:targetSdkVersion="21"/>
+    <uses-sdk android:minSdkVersion="18" android:targetSdkVersion="22"/>
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.GET_ACCOUNTS"/>
