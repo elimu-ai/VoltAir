@@ -168,6 +168,19 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 30
 
+    # EXPERIMENT: Qt shaders fail to compile on the API 30 / swiftshader_indirect
+    # emulator ("No precision specified for (float)"), giving a black launch.png.
+    # Try several API level / GPU mode combinations to find one that renders.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { api: 30, gpu: swiftshader_indirect }
+          - { api: 30, gpu: guest }
+          - { api: 28, gpu: swiftshader_indirect }
+          - { api: 28, gpu: guest }
+          - { api: 26, gpu: swiftshader_indirect }
+
     steps:
       - name: Checkout (for the smoke-test script only)
         uses: actions/checkout@v4
@@ -186,10 +199,11 @@ jobs:
       - name: Launch APK in emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 30
+          api-level: ${{ matrix.api }}
           arch: x86_64
           target: google_apis
           disable-animations: true
+          emulator-options: -no-window -gpu ${{ matrix.gpu }} -no-snapshot -noaudio -no-boot-anim
           # Each line below runs as its own shell command. The first starts a
           # background watcher that presses OK on the "built for an older
           # version of Android" warning as soon as it appears; the second
@@ -202,7 +216,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: emulator-launch-results
+          name: emulator-launch-results-api${{ matrix.api }}-${{ matrix.gpu }}
           path: |
             launch.png
             logcat.txt
