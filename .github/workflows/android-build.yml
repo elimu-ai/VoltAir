@@ -97,8 +97,8 @@ jobs:
           test -x "$SDK_ROOT/tools/android" || { echo "::error::tools/android still missing after install"; ls -la "$SDK_ROOT/tools" || true; exit 1; }
           echo "Accepting SDK licenses..."
           yes | sudo "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
-          echo "Installing android-20 platform + build-tools..."
-          sudo "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-20" "build-tools;26.0.2" "platform-tools"
+          echo "Installing android-21 platform + build-tools..."
+          sudo "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-21" "build-tools;26.0.2" "platform-tools"
           # ant auto-selects the newest build-tools dir; modern ones (e.g.
           # 37.0.0) removed `dx`, causing "Cannot run program .../dx"
           # (error=2). Prune to ant-compatible 26.0.2 only.
@@ -113,8 +113,8 @@ jobs:
           sudo chmod -R a+rx "$SDK_ROOT/build-tools/26.0.2"
           test -x "$SDK_ROOT/build-tools/26.0.2/dx" || { echo "::error::dx missing in 26.0.2"; ls -la "$SDK_ROOT/build-tools/26.0.2" || true; exit 1; }
           test -x "$SDK_ROOT/build-tools/26.0.2/aapt" || { echo "::error::aapt missing in 26.0.2"; ls -la "$SDK_ROOT/build-tools/26.0.2" || true; exit 1; }
-          test -f "$SDK_ROOT/platforms/android-20/android.jar" || { echo "::error::android-20 platform missing"; ls "$SDK_ROOT/platforms" || true; exit 1; }
-          ls "$SDK_ROOT/tools/android" "$SDK_ROOT/platforms/android-20/android.jar"
+          test -f "$SDK_ROOT/platforms/android-21/android.jar" || { echo "::error::android-21 platform missing"; ls "$SDK_ROOT/platforms" || true; exit 1; }
+          ls "$SDK_ROOT/tools/android" "$SDK_ROOT/platforms/android-21/android.jar"
 
       - name: Build Android APK
         run: |
