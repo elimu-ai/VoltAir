@@ -190,7 +190,13 @@ jobs:
           arch: x86_64
           target: google_apis
           disable-animations: true
-          script: bash .github/scripts/smoke-test.sh VoltAir.apk
+          # Each line below runs as its own shell command. The first starts a
+          # background watcher that presses OK on the "built for an older
+          # version of Android" warning as soon as it appears; the second
+          # installs/launches the APK.
+          script: |
+            nohup bash .github/scripts/dismiss-android-dialog.sh 180 > dismiss-dialog.log 2>&1 &
+            bash .github/scripts/smoke-test.sh VoltAir.apk
 
       - name: Upload launch results
         if: always()
@@ -200,4 +206,5 @@ jobs:
           path: |
             launch.png
             logcat.txt
+            dismiss-dialog.log
           if-no-files-found: ignore
