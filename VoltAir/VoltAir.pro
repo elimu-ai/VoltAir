@@ -93,3 +93,6 @@ RESOURCES += \
     resources/voltair.qrc
 
 cache()
+
+DISTFILES += \
+    qml/ui/VoltairImage.qml
