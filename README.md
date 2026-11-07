@@ -14,7 +14,12 @@ https://github.com/user-attachments/assets/7de9cb0d-b066-4ea3-b78c-837b6f74d4ae
 
 ## Installation
 
-Note: This app depends on the [elimu.ai Content Provider](https://github.com/elimu-ai/content-provider) to be installed.
+This app can be downloaded and installed via the [elimu.ai Appstore](https://github.com/elimu-ai/appstore).
+
+> [!NOTE]
+> This app depends on two infrastructural elimu.ai apps to be installed on your device:
+> * [Content Provider](https://github.com/elimu-ai/content-provider) - For loading letters and corresponding letter-sounds
+> * [Analytics](https://github.com/elimu-ai/content-provider) - For reporting letter-sound learning events
 
 ## Development
 
@@ -35,7 +40,7 @@ To trigger a release, press "Run workflow" at https://github.com/elimu-ai/VoltAi
   <img src="https://github.com/elimu-ai/webapp/blob/main/src/main/webapp/static/img/logo-text-256x78.png" />
 </p>
 <p align="center">
-  elimu.ai - Free open-source learning software for out-of-school children ✨🚀
+  elimu.ai - Free open-source learning software for out-of-school children 🚀✨
 </p>
 <p align="center">
   <a href="https://elimu.ai">Website 🌐</a>
