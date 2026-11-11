@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 #
 # Copyright 2014 Google Inc. All Rights Reserved.
 #
@@ -79,10 +79,10 @@ def RunSubprocess(argv, rundir=None, env=None):
       Pushd(rundir)
     joined_argv = " ".join(argv)
     err = "Running subprocess: %s in %s" % (joined_argv, os.getcwd())
-    print >> sys.stderr, err
+    print(err, file=sys.stderr)
     process = subprocess.Popen(argv, env=env)
     process.wait()
-    print >> sys.stderr, "Subprocess succeeded."
+    print("Subprocess succeeded.", file=sys.stderr)
   finally:
     if rundir is not None:
       Popd()
@@ -124,17 +124,17 @@ def main():
     qt_root = parsed_args.qt_root
     skip_api = parsed_args.skip_api
     if not os.path.exists(qt_root):
-      print >> sys.stderr, "qt-root %s does not exist. Exiting." % qt_root
+      print("qt-root %s does not exist. Exiting." % qt_root, file=sys.stderr)
       return -1
     if not os.path.isdir(qt_root):
-      print >> sys.stderr, "qt-root %s is not directory. Exiting." % qt_root
+      print("qt-root %s is not directory. Exiting." % qt_root, file=sys.stderr)
       return -1
     version = None
     for elt in os.listdir(qt_root):
       if re.match(r"^\d*\.\d*$", elt) is not None:
         version = elt
     if version is None:
-      print >> sys.stderr, "%s has no version directory. Exiting." % qt_root
+      print("%s has no version directory. Exiting." % qt_root, file=sys.stderr)
       return -1
 
     env = os.environ.copy()
@@ -150,8 +150,8 @@ def main():
     # Finally, copy over the index.html to root. It's just a redirect link.
     shutil.copyfile("../doc/index.html", "../index.html")
 
-  except RunProcessError, error:
-    print >> sys.stderr, str(error)
+  except RunProcessError as error:
+    print(str(error), file=sys.stderr)
     return error.return_code
 
   return 0
