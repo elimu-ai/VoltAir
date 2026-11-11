@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 #
 # Copyright (C) 2014 Google Inc.
 #
@@ -57,10 +57,10 @@ def RunSubprocess(argv, rundir=None):
     if rundir is not None:
       Pushd(rundir)
     joined_argv = " ".join(argv)
-    print >> sys.stderr, "Running subprocess: %s" % joined_argv
+    print("Running subprocess: %s" % joined_argv, file=sys.stderr)
     process = subprocess.Popen(argv)
     process.wait()
-    print >> sys.stderr, "Subprocess succeeded."
+    print("Subprocess succeeded.", file=sys.stderr)
   finally:
     if rundir is not None:
       Popd()
@@ -194,7 +194,7 @@ def RenameApk(dst_apk):
   """
 
   src_apk = os.getcwd() + "/android-build/bin/QtApp-release-signed.apk"
-  print >> sys.stderr, "Renaming %s to %s" % (src_apk, dst_apk)
+  print("Renaming %s to %s" % (src_apk, dst_apk), file=sys.stderr)
   os.rename(src_apk, dst_apk)
 
 
@@ -257,7 +257,7 @@ def main():
 
   #if os.path.exists(build_dir):
   #  err = "Error: Target directory %s exists. Exiting" % build_dir
-  #  print >> sys.stderr, err
+  #  print(err, file=sys.stderr)
   #  return -1
 
   try:
@@ -297,8 +297,8 @@ def main():
     # VoltAir.apk).
     RenameApk(parsed_args.output_apk)
 
-  except RunProcessError, error:
-    print >> sys.stderr, str(error)
+  except RunProcessError as error:
+    print(str(error), file=sys.stderr)
     return error.return_code
   finally:
     Popd()
