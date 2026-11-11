@@ -41,10 +41,6 @@ import java.nio.charset.Charset;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.DefaultHttpClient;
 import org.qtproject.qt5.android.bindings.QtActivity;
 
 import java.util.ArrayList;
