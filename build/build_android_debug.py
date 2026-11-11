@@ -75,7 +75,7 @@ def SetEnvironment(sdk_root, ndk_root, ndk_platform):
   Args:
     sdk_root: Android SDK location
     ndk_root: Android NDK location
-    ndk_platform: Android platform (e.g. android-19)
+    ndk_platform: Android platform (e.g. android-20)
   """
   os.environ["ANDROID_NDK_PLATFORM"] = ndk_platform
   os.environ["ANDROID_HOME"] = sdk_root
@@ -153,7 +153,7 @@ def RunAndroidDeployQt(qt_root, voltair_root, build_dir, ant, ndk_platform,
     voltair_root: VoltAir project location.
     build_dir: Directory in which app was built. Need to run command here.
     ant: And location
-    ndk_platform: Android platform (e.g. android-19)
+    ndk_platform: Android platform (e.g. android-20)
     jdk: Java Development Kit location
   """
   androiddeployqt = [
@@ -210,8 +210,8 @@ def main():
                       help="Java Development Kit location")
   parser.add_argument("--sdk-root", required=True, help="Android SDK location")
   parser.add_argument("--ndk-root", required=True, help="Android NDK location")
-  parser.add_argument("--ndk-platform", default="android-19",
-                      help="Android platform (must be >= android-19)")
+  parser.add_argument("--ndk-platform", default="android-20",
+                      help="Android platform (must be >= android-20)")
   parser.add_argument("--ant", required=True, help="ant binary location")
   parser.add_argument("--num-processes", default="1",
                       help="Number of processes to use for 'make'")
