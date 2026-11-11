@@ -34,6 +34,8 @@ name: Release APK
 # re-signs the same APK contents.
 
 on:
+  push:
+    branches: [ "master" ]
   workflow_dispatch:
     inputs:
       next_bump:
