@@ -31,6 +31,10 @@
 #include "UiInternal.h"
 #include "inputs/PlayerManager.h"
 
+#ifdef Q_OS_ANDROID
+#include "Engine/android/AndroidActivity.h"
+#endif
+
 Game* Game::sInstance = nullptr;
 
 Game::Game(QObject* parent)
@@ -341,6 +345,14 @@ QString Game::getValidLetter(const double randomNumber)
     int letterIndex = (int) (validLetters.length()  * randomNumber);
     qDebug() << validLetters.at(letterIndex);
     return validLetters.at(letterIndex);
+}
+
+void Game::reportLetterSoundLearningEvent(const QString& letter) {
+#ifdef Q_OS_ANDROID
+    AndroidActivity::reportLetterSoundLearningEvent(letter);
+#else
+    qDebug() << "reportLetterSoundLearningEvent (not on Android):" << letter;
+#endif
 }
 
 void Game::onUiActiveChanged(bool isActive) {

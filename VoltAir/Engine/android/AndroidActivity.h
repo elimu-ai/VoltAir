@@ -241,6 +241,13 @@ public:
      */
     static QString validLetters();
 
+    /**
+     * @brief Reports a letter-sound learning event to the elimu.ai Analytics app, by invoking the
+     * Android activity's @c reportLetterSoundLearningEvent method.
+     * @param letter The letter that the student collected, e.g. "e"
+     */
+    static void reportLetterSoundLearningEvent(const QString& letter);
+
 private:
     static bool onKeyEvent(JNIEnv* jni, jobject keyEvent, ControllerEvent* controllerEvent);
     static jclass getSoundManagerClass(JNIEnv* jni, jobject soundManager = nullptr);

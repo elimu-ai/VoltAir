@@ -167,6 +167,13 @@ public:
     Q_INVOKABLE QString getValidLetter(const double randomNumber);
 
     /**
+     * @brief Reports a letter-sound learning event to the elimu.ai Analytics app.
+     * @note This function only has an effect on an Android device.
+     * @param letter The letter that the student collected, e.g. "e"
+     */
+    Q_INVOKABLE void reportLetterSoundLearningEvent(const QString& letter);
+
+    /**
      * @brief Gets the singleton Game.
      */
     static Game* getInstance();

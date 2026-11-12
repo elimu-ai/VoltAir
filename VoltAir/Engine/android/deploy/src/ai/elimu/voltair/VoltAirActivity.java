@@ -47,6 +47,7 @@ import java.util.ArrayList;
 import android.preference.PreferenceManager;
 import android.content.SharedPreferences;
 import java.util.Locale;
+import org.json.JSONObject;
 
 
 /**
@@ -68,6 +69,16 @@ public class VoltAirActivity extends QtActivity implements InputManager.InputDev
     // Request code when invoking Activities whose result we don't care about.
     private static final int RC_UNUSED = 5001;
     private static final Charset UTF_8 = Charset.forName("UTF-8");
+
+    // elimu.ai Analytics (https://github.com/elimu-ai/analytics)
+    private static final String ANALYTICS_APPLICATION_ID = "ai.elimu.analytics";
+    private static final String ACTION_LETTER_SOUND_LEARNING_EVENT =
+            "ai.elimu.intent.action.LETTER_SOUND_LEARNING_EVENT";
+    // Keys from ai.elimu.analytics.utils.BundleKeys. Do not change these values.
+    private static final String KEY_PACKAGE_NAME = "package_name";
+    private static final String KEY_ADDITIONAL_DATA = "additional_data";
+    private static final String KEY_LETTER_SOUND_LETTERS = "letter_sound_letters";
+    private static final String KEY_LETTER_SOUND_SOUNDS = "letter_sound_sounds";
 
     private AudioManager mAudioManager = null;
     private InputManager mInputManager = null;
@@ -442,6 +453,53 @@ public class VoltAirActivity extends QtActivity implements InputManager.InputDev
             letters = settings.getString(PREF_STUDENT_LETTERS, letters);
         }
         return letters;
+    }
+
+    /**
+     * @brief Reports a letter-sound learning event to the elimu.ai Analytics app, by sending a
+     * broadcast Intent.
+     *
+     * The action and extra keys must match the ones used by the elimu.ai Analytics app (see
+     * {@code ai.elimu.analytics.utils.LearningEventUtil} and {@code BundleKeys} in
+     * https://github.com/elimu-ai/analytics).
+     * @param letter The letter that the student collected, e.g. "e"
+     */
+    public void reportLetterSoundLearningEvent(String letter) {
+        Log.i(LOG_TAG, "reportLetterSoundLearningEvent: " + letter);
+        try {
+            // TODO: Replace hardcoded sounds with data from the elimu.ai Content Provider.
+            String soundIpa = null;
+            if ("e".equals(letter)) {
+                soundIpa = "e";
+            } else if ("t".equals(letter)) {
+                soundIpa = "t";
+            } else if ("a".equals(letter)) {
+                soundIpa = "a";
+            }
+
+            Intent intent = new Intent();
+            intent.setPackage(ANALYTICS_APPLICATION_ID);
+            intent.setAction(ACTION_LETTER_SOUND_LEARNING_EVENT);
+            intent.putExtra(KEY_PACKAGE_NAME, getPackageName());
+
+            JSONObject additionalData = new JSONObject();
+            additionalData.put("is_letter_collected", true);
+            intent.putExtra(KEY_ADDITIONAL_DATA, additionalData.toString());
+
+            ArrayList<String> letters = new ArrayList<String>();
+            letters.add(letter);
+            intent.putStringArrayListExtra(KEY_LETTER_SOUND_LETTERS, letters);
+
+            ArrayList<String> sounds = new ArrayList<String>();
+            if (soundIpa != null) {
+                sounds.add(soundIpa);
+            }
+            intent.putStringArrayListExtra(KEY_LETTER_SOUND_SOUNDS, sounds);
+
+            sendBroadcast(intent);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Error during Intent preparation", e);
+        }
     }
 
 }
