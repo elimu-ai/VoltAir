@@ -75,7 +75,7 @@ variable in your build environment. Take the following steps:
 
 ![Qt Creator Liquid Fun Build Settings](QtCreatorLiquidFunBuildSettings.png)
 
-# Setting Android Environment to use the android-19 API
+# Setting Android Environment to use the android-21 API
 
 This ONLY applies to the *Android for armeabi-v7a (GCC 4.8, Qt 5.3.1)*.
 In the same *Build Environment* location, make certain that the **ANDROID_NDK_PLATFORM** is set to
