@@ -75,18 +75,18 @@ variable in your build environment. Take the following steps:
 
 ![Qt Creator Liquid Fun Build Settings](QtCreatorLiquidFunBuildSettings.png)
 
-# Setting Android Environment to use the android-19 API
+# Setting Android Environment to use the android-21 API
 
 This ONLY applies to the *Android for armeabi-v7a (GCC 4.8, Qt 5.3.1)*.
 In the same *Build Environment* location, make certain that the **ANDROID_NDK_PLATFORM** is set to
-**android-19**.
+**android-21**.
 
-![Qt Creator Android 19 Build Setting](QtCreatorAndroid19BuildSetting.png)
+![Qt Creator Android 21 Build Setting](QtCreatorAndroid19BuildSetting.png)
 
-You also need to make certain that your Android SDK has API 19 installed. This is done from within
+You also need to make certain that your Android SDK has API 21 installed. This is done from within
 the [Android SDK Manager][]. The image below shows what you should expect to see:
 
-![Android SDK Manager API 19](AndroidSDK.png)
+![Android SDK Manager API 21](AndroidSDK.png)
 
 
 For more information on configuring *Qt Creator*, please see the [Configuring Projects][]
