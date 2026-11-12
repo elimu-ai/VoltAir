@@ -14,9 +14,6 @@
 
         <meta-data android:name="isGame" android:value="true"/>
 
-        <meta-data android:name="com.google.android.gms.appstate.APP_ID" android:value="@string/app_id"/>
-        <meta-data android:name="com.google.android.gms.games.APP_ID" android:value="@string/app_id"/>
-
         <activity android:name="ai.elimu.voltair.VoltAirActivity" android:label="@string/app_name" android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|locale|fontScale|keyboard|keyboardHidden|navigation" android:screenOrientation="sensorLandscape" android:launchMode="singleTop">
 
             <intent-filter>
