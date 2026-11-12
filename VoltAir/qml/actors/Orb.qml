@@ -157,6 +157,8 @@ Actor {
         active: false
 
         onCollected: {
+            Game.reportLetterSoundLearningEvent(chosenLetter)
+
             graphic.cacheRenderParams = false
             letter.cacheRenderParams = false
             body.bodyType = Body.DynamicBody

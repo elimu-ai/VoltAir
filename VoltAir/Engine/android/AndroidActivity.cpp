@@ -631,4 +631,27 @@ QString AndroidActivity::validLetters()
     return letters;
 }
 
+void AndroidActivity::reportLetterSoundLearningEvent(const QString& letter) {
+    auto jni = getEnv();
+    if (!jni || !getActivity()) {
+        return;
+    }
+    jclass activityClass = getActivityClass(jni.getJNIEnv());
+    jmethodID reportMethod = jni->GetMethodID(activityClass, "reportLetterSoundLearningEvent",
+            "(Ljava/lang/String;)V");
+    if (!reportMethod) {
+        qDebug() << "reportLetterSoundLearningEvent: Java method not found";
+        jni->ExceptionClear();
+        return;
+    }
+    QByteArray nativeLetter = letter.toUtf8();
+    jstring javaLetter = jni->NewStringUTF(nativeLetter.constData());
+    jni->CallVoidMethod(getActivity(), reportMethod, javaLetter);
+    if (jni->ExceptionCheck()) {
+        jni->ExceptionDescribe();
+        jni->ExceptionClear();
+    }
+    jni->DeleteLocalRef(javaLetter);
+}
+
 #endif // Q_OS_ANDROID
