@@ -8,7 +8,17 @@ AAPT="$(ls -d "$ANDROID_HOME"/build-tools/*/aapt | sort -V | tail -1)"
 PKG="$("$AAPT" dump badging "$APK" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")"
 echo "Package: $PKG"
 
-adb install -g -r "$APK"
+# The CI emulator is x86_64 and advertises arm64-v8a via NDK translation, so
+# a fat APK installs its arm64 slice there — but Qt's arm64 code crashes under
+# translation (F DEBUG in qtMainLoopThread), while armeabi-v7a runs fine.
+# Pin the translated ABI when ADB_INSTALL_ABI is set (CI); unset installs the
+# device-preferred ABI (e.g. arm64 on real 64-bit hardware).
+ADB_INSTALL_ABI="${ADB_INSTALL_ABI:-}"
+if [ -n "$ADB_INSTALL_ABI" ]; then
+  adb install -g -r --abi "$ADB_INSTALL_ABI" "$APK"
+else
+  adb install -g -r "$APK"
+fi
 adb logcat -c
 adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1
 

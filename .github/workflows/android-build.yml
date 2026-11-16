@@ -135,6 +135,8 @@ jobs:
           script: |
             nohup bash .github/scripts/dismiss-android-dialog.sh 180 > dismiss-dialog.log 2>&1 &
             bash .github/scripts/smoke-test.sh VoltAir.apk
+        env:
+          ADB_INSTALL_ABI: armeabi-v7a
 
       - name: Upload launch results
         if: always()
