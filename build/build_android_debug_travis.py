@@ -23,6 +23,11 @@ import shutil
 import subprocess
 import sys
 
+QT_ABI_TO_ANDROID_ABI = {
+    "android_armv7": "armeabi-v7a",
+    "android_arm64_v8a": "arm64-v8a",
+}
+
 
 class RunProcessError(Exception):
   """Raised when a process returns an error code.
@@ -171,7 +176,7 @@ def RunMakeInstall():
 
 
 def RunAndroidDeployQt(qt_root, voltair_root, build_dir, android_platform,
-                       jdk):
+                       jdk, settings_dir=None):
   """Run the 'androiddeployqt' command.
 
   Args:
@@ -180,6 +185,8 @@ def RunAndroidDeployQt(qt_root, voltair_root, build_dir, android_platform,
     build_dir: Directory in which app was built. Need to run command here.
     android_platform: Android SDK platform used to package the APK
     jdk: Java Development Kit location
+    settings_dir: Directory holding this ABI's qmake-generated
+      android-*-deployment-settings.json. Defaults to the current directory.
   """
   host_qt_root = qt_root
   for host_kit in ("macos", "gcc_64", "linux_gcc_64"):
@@ -188,8 +195,10 @@ def RunAndroidDeployQt(qt_root, voltair_root, build_dir, android_platform,
       host_qt_root = os.path.join(qt_root, host_kit)
       break
 
+  if settings_dir is None:
+    settings_dir = os.getcwd()
   deployment_settings = next(iter(sorted(glob.glob(
-      os.path.join(os.getcwd(), "android-*-deployment-settings.json")))), None)
+      os.path.join(settings_dir, "android-*-deployment-settings.json")))), None)
   if deployment_settings is None:
     print("ERROR: deployment settings JSON not found in '%s'." % os.getcwd(),
           file=sys.stderr)
@@ -209,6 +218,58 @@ def RunAndroidDeployQt(qt_root, voltair_root, build_dir, android_platform,
       jdk
   ]
   RunSubprocess(androiddeployqt, build_dir)
+
+
+def SeedAbiAppLib(build_dir, abi_build_dir, android_abi):
+  """Pre-seeds an extra ABI's app lib into the packaging libs dir.
+
+  androiddeployqt requires the application binary at
+  android-build/libs/<abi>/ before it will stage that ABI's Qt libs.
+  `make install` already put it in the ABI's own build dir; copy it over.
+  """
+  src = os.path.join(abi_build_dir, "android-build", "libs", android_abi)
+  if not os.path.isdir(src):
+    print("ERROR: missing ABI libs dir '%s'. Did the %s build run?" %
+          (src, abi_build_dir), file=sys.stderr)
+    sys.exit(2)
+  shutil.copytree(src, os.path.join(build_dir, "android-build", "libs",
+                                     android_abi),
+                    dirs_exist_ok=True)
+
+
+def WriteAbiList(build_dir, android_abis):
+  """Sets qtTargetAbiList so gradle packages every built ABI into one APK.
+
+  Args:
+    build_dir: Final packaging dir.
+    android_abis: Android ABI names to package.
+  """
+  props_path = os.path.join(build_dir, "android-build", "gradle.properties")
+  abi_list = ",".join(android_abis)
+  with open(props_path) as props_file:
+    lines = props_file.readlines()
+  found = False
+  with open(props_path, "w") as props_file:
+    for line in lines:
+      if line.startswith("qtTargetAbiList="):
+        line = "qtTargetAbiList=%s\n" % abi_list
+        found = True
+      props_file.write(line)
+  if not found:
+    print("ERROR: qtTargetAbiList not found in '%s'." % props_path,
+          file=sys.stderr)
+    sys.exit(2)
+
+
+def RunGradleAssemble(build_dir):
+  """Re-runs gradle assembleDebug so merged libs land in one fat APK.
+
+  Args:
+    build_dir: Final packaging dir.
+  """
+  android_build = os.path.join(build_dir, "android-build")
+  RunSubprocess([os.path.join(android_build, "gradlew"), "assembleDebug"],
+                android_build)
 
 
 def RenameApk(dst_apk):
@@ -271,9 +332,10 @@ def main():
   parser.add_argument("--ndk-root", required=True, help="Android NDK location")
   parser.add_argument("--ndk-platform", default="android-26",
                       help="Android native platform")
-  parser.add_argument("--qt-abi", default="android_armv7",
+  parser.add_argument("--qt-abi", default=["android_armv7"],
+                      nargs="+",
                       choices=("android_armv7", "android_arm64_v8a"),
-                      help="Qt Android ABI kit")
+                      help="Qt Android ABI kit(s); pass several for a fat APK")
   parser.add_argument("--android-platform", default="android-34",
                       help="Android SDK platform used to package the APK")
   parser.add_argument("--num-processes", default="1",
@@ -306,40 +368,68 @@ def main():
 
   try:
 
-    # Move to liquidfun directory and build it.
-    print("liquidfun_root " + liquidfun_root)
-    android_abi = {"android_armv7": "armeabi-v7a",
-                   "android_arm64_v8a": "arm64-v8a"}[parsed_args.qt_abi]
-    os.environ["VOLTAIR_ANDROID_ABI"] = android_abi
-    RunLiquidFunNdkBuild(liquidfun_root + "/Box2D", parsed_args.ndk_root,
-                         parsed_args.ndk_platform, android_abi)
+    qt_abis = parsed_args.qt_abi
+    android_abis = [QT_ABI_TO_ANDROID_ABI[qt_abi] for qt_abi in qt_abis]
 
-    # Create and move to voltair build target dir and start building.
-    if not os.path.exists(build_dir):
-      os.mkdir(build_dir)
+    for index, qt_abi in enumerate(qt_abis):
+      # The first ABI builds in --build-dir itself, preserving the historical
+      # bin/VoltAir.apk contract; extra ABIs use suffixed dirs so object files
+      # and Makefiles never mix across ABIs.
+      abi_build_dir = build_dir if index == 0 else "%s-%s" % (build_dir,
+                                                              qt_abi)
+      android_abi = android_abis[index]
+
+      # Move to liquidfun directory and build it.
+      print("liquidfun_root " + liquidfun_root)
+      os.environ["VOLTAIR_ANDROID_ABI"] = android_abi
+      RunLiquidFunNdkBuild(liquidfun_root + "/Box2D", parsed_args.ndk_root,
+                           parsed_args.ndk_platform, android_abi)
+
+      # Create and move to voltair build target dir and start building.
+      if not os.path.exists(abi_build_dir):
+        os.mkdir(abi_build_dir)
+      Pushd(abi_build_dir)
+
+      try:
+        # What follows are the required steps for building the an APK in Qt.  First
+        # we need to set up the environment as certain of the steps read it.
+        SetEnvironment(parsed_args.sdk_root, parsed_args.ndk_root,
+                       parsed_args.ndk_platform)
+
+        # 'qmake' is Qt's project builder. It will construct a Makefile that is then
+        # run.
+        RunQmake(qt_root, voltair_root, qt_abi)
+
+        # Run the makefile, which results in the building of the libVoltAir.so file.
+        RunMake(parsed_args.num_processes)
+
+        # This places the libVoltAir.so file in the appropriate directory.
+        RunMakeInstall()
+      finally:
+        Popd()
+
+    # Create and move to voltair build target dir and start packaging.
     Pushd(build_dir)
 
     try:
-      # What follows are the required steps for building the an APK in Qt.  First
-      # we need to set up the environment as certain of the steps read it.
-      SetEnvironment(parsed_args.sdk_root, parsed_args.ndk_root,
-                     parsed_args.ndk_platform)
+      # Run 'androiddeployqt' once per ABI into the same android-build dir.
+      # Each run stages that ABI's Qt libs under libs/<abi/> (44 libs incl.
+      # the app lib) without touching the other ABIs' libs.
+      for index, qt_abi in enumerate(qt_abis):
+        abi_build_dir = build_dir if index == 0 else "%s-%s" % (build_dir,
+                                                                qt_abi)
+        if index > 0:
+          # The primary ABI's app lib is already in place via its own
+          # `make install`; seed each extra ABI's app lib the same way.
+          SeedAbiAppLib(build_dir, abi_build_dir, android_abis[index])
+        RunAndroidDeployQt(qt_root, voltair_root, build_dir,
+                           parsed_args.android_platform, parsed_args.jdk,
+                           settings_dir=abi_build_dir)
 
-      # 'qmake' is Qt's project builder. It will construct a Makefile that is then
-      # run.
-      RunQmake(qt_root, voltair_root, parsed_args.qt_abi)
-
-      # Run the makefile, which results in the building of the libVoltAir.so file.
-      RunMake(parsed_args.num_processes)
-
-      # This places the libVoltAir.so file in the appropriate directory.
-      RunMakeInstall()
-
-      # Runs 'androiddeployqt' which constructs the APK from the libVoltAir.so and
-      # the other files specified in the Qt project (e.g. java files,
-      # AndroidManifest.xml, and so on).
-      RunAndroidDeployQt(qt_root, voltair_root, build_dir,
-                         parsed_args.android_platform, parsed_args.jdk)
+      if len(qt_abis) > 1:
+        # Point gradle at every built ABI, then re-assemble into one fat APK.
+        WriteAbiList(build_dir, android_abis)
+        RunGradleAssemble(build_dir)
 
       # Move the produced APK to a more descriptive location (VoltAir.apk).
       RenameApk(parsed_args.output_apk)
