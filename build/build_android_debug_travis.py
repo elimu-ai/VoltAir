@@ -22,6 +22,7 @@ import os
 import shutil
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 
 QT_ABI_TO_ANDROID_ABI = {
     "android_armv7": "armeabi-v7a",
@@ -237,6 +238,59 @@ def SeedAbiAppLib(build_dir, abi_build_dir, android_abi):
                     dirs_exist_ok=True)
 
 
+def SnapshotLibsXml(build_dir, android_abi):
+  """Saves this ABI's androiddeployqt-generated libs.xml for later merging.
+
+  Each androiddeployqt run regenerates res/values/libs.xml from only its own
+  ABI's deployment settings, so a snapshot must be taken after each run.
+  Stored outside android-build/ so aapt never packages it.
+  """
+  src = os.path.join(build_dir, "android-build", "res", "values", "libs.xml")
+  if not os.path.isfile(src):
+    print("ERROR: libs.xml not found at '%s'." % src, file=sys.stderr)
+    sys.exit(2)
+  shutil.copyfile(src, os.path.join(build_dir, "libs-%s.xml" % android_abi))
+
+
+def MergeLibsXml(build_dir, android_abis):
+  """Merges per-ABI libs.xml snapshots so every built ABI keeps its entries.
+
+  Without this, the final APK's libs.xml lists only the last androiddeployqt
+  run's ABI, and QtLoader fails to load Qt libs on devices using the other
+  ABIs even though their .so files are packaged.
+  """
+  merged_arrays = {"bundled_libs": [], "qt_libs": [], "load_local_libs": []}
+  strings = []
+  for android_abi in android_abis:
+    snapshot = os.path.join(build_dir, "libs-%s.xml" % android_abi)
+    if not os.path.isfile(snapshot):
+      print("ERROR: libs.xml snapshot missing at '%s'." % snapshot,
+            file=sys.stderr)
+      sys.exit(2)
+    root = ET.parse(snapshot).getroot()
+    for array in root.findall("array"):
+      name = array.get("name")
+      if name in merged_arrays:
+        for item in array.findall("item"):
+          text = item.text or ""
+          if text not in merged_arrays[name]:
+            merged_arrays[name].append(text)
+    strings = [(s.get("name"), s.text) for s in root.findall("string")]
+  root = ET.Element("resources")
+  root.append(ET.Comment(" DO NOT EDIT THIS: This file is populated "
+                         "automatically by the deployment tool. "))
+  for name in ("bundled_libs", "qt_libs", "load_local_libs"):
+    array = ET.SubElement(root, "array", {"name": name})
+    for text in merged_arrays[name]:
+      ET.SubElement(array, "item").text = text
+  for name, text in strings:
+    ET.SubElement(root, "string", {"name": name}).text = text
+  ET.indent(root)
+  ET.ElementTree(root).write(os.path.join(build_dir, "android-build", "res",
+                                           "values", "libs.xml"),
+                             encoding="utf-8", xml_declaration=True)
+
+
 def WriteAbiList(build_dir, android_abis):
   """Sets qtTargetAbiList so gradle packages every built ABI into one APK.
 
@@ -425,9 +479,13 @@ def main():
         RunAndroidDeployQt(qt_root, voltair_root, build_dir,
                            parsed_args.android_platform, parsed_args.jdk,
                            settings_dir=abi_build_dir)
+        if len(qt_abis) > 1:
+          SnapshotLibsXml(build_dir, android_abis[index])
 
       if len(qt_abis) > 1:
-        # Point gradle at every built ABI, then re-assemble into one fat APK.
+        # Restore every ABI's loader metadata, point gradle at every built
+        # ABI, then re-assemble into one fat APK.
+        MergeLibsXml(build_dir, android_abis)
         WriteAbiList(build_dir, android_abis)
         RunGradleAssemble(build_dir)
 
