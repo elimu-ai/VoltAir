@@ -19,6 +19,8 @@ if [ -n "$ADB_INSTALL_ABI" ]; then
 else
   adb install -g -r "$APK"
 fi
+echo "Installed $PKG; device ABI resolution:"
+adb shell pm dump "$PKG" | grep -iE "primaryCpuAbi|secondaryCpuAbi" || true
 adb logcat -c
 adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1
 
