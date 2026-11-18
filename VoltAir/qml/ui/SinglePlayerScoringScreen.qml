@@ -524,8 +524,6 @@ UiComponent {
         opacity: 0
         buttonText: TR.value(root.gameCompleted ? "finish" : "next")
 
-        focusRight: pgsButton
-        focusUp: pgsButton
         focusLeft: retryButton
 
         onReleased: {

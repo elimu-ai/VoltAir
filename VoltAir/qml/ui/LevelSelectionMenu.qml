@@ -224,8 +224,7 @@ UiComponent {
             }
         }
 
-        focusUp: (listView.currentIndex >= listView.count / 2) ? pgsButton : backButton
-        focusRight: pgsButton
+        focusUp: backButton
         focusLeft: muteButton
     }
 
@@ -274,8 +273,7 @@ UiComponent {
             }
         }
 
-        focusUp: (listView.currentIndex >= listView.count / 2) ? pgsButton : backButton
-        focusRight: pgsButton
+        focusUp: backButton
         focusLeft: muteButton
     }
 
@@ -359,8 +357,7 @@ UiComponent {
             }
         }
 
-        focusUp: (listView.currentIndex >= listView.count / 2) ? pgsButton : backButton
-        focusRight: pgsButton
+        focusUp: backButton
         focusLeft: muteButton
     }
 

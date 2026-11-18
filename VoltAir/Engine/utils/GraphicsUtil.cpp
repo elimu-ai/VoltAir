@@ -15,14 +15,10 @@
  */
 
 #include <QOpenGLFunctions>
+#include <QOpenGLContext>
 #include "GraphicsUtil.h"
 
-static QOpenGLFunctions* sOpenGLFunctions = nullptr;
-
 QOpenGLFunctions* GraphicsUtil::getOpenGLFunctions() {
-    if (!sOpenGLFunctions) {
-        sOpenGLFunctions = new QOpenGLFunctions();
-        sOpenGLFunctions->initializeOpenGLFunctions();
-    }
-    return sOpenGLFunctions;
+    QOpenGLContext* context = QOpenGLContext::currentContext();
+    return context ? context->functions() : nullptr;
 }

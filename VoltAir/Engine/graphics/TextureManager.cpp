@@ -14,19 +14,27 @@
  * limitations under the License.
  */
 
-#include <QQuickWindow>
-#include <QSGTexture>
+#include <QFile>
+#include <QImage>
+#include <QOpenGLFunctions>
 #include "Engine.h"
 #include "TextureManager.h"
 #include "renderer/Texture.h"
+#include "utils/GraphicsUtil.h"
 #include "utils/Util.h"
 
 /**
- * Implementation of Texture based on QSGTexture.
+ * Implementation of Texture that owns a raw GL texture.
+ *
+ * The texture is uploaded lazily on first bind, when a GL context is
+ * guaranteed to be current (inside begin/endExternalCommands). Going
+ * through QSGTexture/RHI does not work here: RHI never realizes textures
+ * that only our external GL commands reference, so nativeTexture() stays 0
+ * and the world renders black.
  */
 class TextureImpl : public Texture {
 public:
-    explicit TextureImpl(QSGTexture* texture);
+    explicit TextureImpl(const QImage& image);
     virtual ~TextureImpl();
 
     virtual void bind() override;
@@ -42,17 +50,19 @@ public:
     virtual GLint getVerticalWrapMode() override;
     virtual void setVerticalWrapMode(GLint value) override;
 private:
-    static QSGTexture::Filtering toFilterMode(GLint value);
-    static QSGTexture::Filtering toMipmapFilterMode(GLint value);
-    static GLint toMagnificationFilterMode(QSGTexture::Filtering value);
-    static GLint toMinificationFilterMode(QSGTexture::Filtering filtering,
-            QSGTexture::Filtering mipmapFiltering);
-    static GLint toNearestMinificationFilterMode(QSGTexture::Filtering mipmapFiltering);
-    static GLint toLinearMinificationFilterMode(QSGTexture::Filtering mipmapFiltering);
-    static QSGTexture::WrapMode toWrapMode(GLint value);
-    static GLint toWrapMode(QSGTexture::WrapMode value);
+    void uploadIfNeeded();
+    void applyParameters(QOpenGLFunctions* glFuncs);
 
-    std::unique_ptr<QSGTexture> mTexture;
+    QImage mImage;
+    GLuint mTextureId = 0;
+    bool mUploaded = false;
+    bool mParamsDirty = true;
+    int mWidth = 0;
+    int mHeight = 0;
+    GLint mMagFilter = GL_LINEAR;
+    GLint mMinFilter = GL_NEAREST_MIPMAP_LINEAR;
+    GLint mWrapS = GL_REPEAT;
+    GLint mWrapT = GL_REPEAT;
 };
 
 TextureManager::~TextureManager() {
@@ -92,8 +102,11 @@ TexturePtr TextureManager::getTexture(const QString& path) {
 #endif
     }
 
-    QQuickWindow* window = Engine::getInstance()->getRoot()->window();
-    TexturePtr texture(new TextureImpl(window->createTextureFromImage(QImage(path))));
+    QImage image(path);
+    if (image.isNull()) {
+        qWarning() << "VoltAir GL null image texture:" << path;
+    }
+    TexturePtr texture(new TextureImpl(image));
     texture->setHorizontalWrapMode(GL_CLAMP_TO_EDGE);
     texture->setVerticalWrapMode(GL_CLAMP_TO_EDGE);
     mTextures[path] = texture;
@@ -144,178 +157,108 @@ void TextureManager::processDeletion() {
     mDeleteQueue.clear();
 }
 
-TextureImpl::TextureImpl(QSGTexture* texture) : mTexture(texture) {
-    // Make sure our defaults are the same as defaults for GL.
-    texture->setFiltering(QSGTexture::Linear);
-    texture->setMipmapFiltering(QSGTexture::Nearest);
-    texture->setHorizontalWrapMode(QSGTexture::Repeat);
-    texture->setVerticalWrapMode(QSGTexture::Repeat);
+TextureImpl::TextureImpl(const QImage& image)
+        : mImage(image),
+          mWidth(image.width()),
+          mHeight(image.height()) {
 }
 
 TextureImpl::~TextureImpl() {
+    if (mUploaded && mTextureId != 0) {
+        // May be a no-op if no context is current; textures are long-lived
+        // so a leak here is bounded and preferable to a crash.
+        if (QOpenGLFunctions* glFuncs = GraphicsUtil::getOpenGLFunctions()) {
+            glFuncs->glDeleteTextures(1, &mTextureId);
+        }
+        mTextureId = 0;
+    }
+}
+
+void TextureImpl::uploadIfNeeded() {
+    QOpenGLFunctions* glFuncs = GraphicsUtil::getOpenGLFunctions();
+    if (!glFuncs) {
+        return;
+    }
+    if (!mUploaded) {
+        if (mImage.isNull() || mWidth <= 0 || mHeight <= 0) {
+            return;
+        }
+        QImage upload = mImage.convertToFormat(QImage::Format_RGBA8888);
+        glFuncs->glGenTextures(1, &mTextureId);
+        glFuncs->glBindTexture(GL_TEXTURE_2D, mTextureId);
+        applyParameters(glFuncs);
+        glFuncs->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, mWidth, mHeight, 0, GL_RGBA,
+                GL_UNSIGNED_BYTE, upload.constBits());
+        glFuncs->glGenerateMipmap(GL_TEXTURE_2D);
+        mImage = QImage();
+        mUploaded = true;
+        mParamsDirty = false;
+    } else {
+        glFuncs->glBindTexture(GL_TEXTURE_2D, mTextureId);
+        if (mParamsDirty) {
+            applyParameters(glFuncs);
+            mParamsDirty = false;
+        }
+    }
+}
+
+void TextureImpl::applyParameters(QOpenGLFunctions* glFuncs) {
+    glFuncs->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mMagFilter);
+    glFuncs->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, mMinFilter);
+    glFuncs->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, mWrapS);
+    glFuncs->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, mWrapT);
 }
 
 void TextureImpl::bind() {
-    if (!mTexture) {
-        return;
-    }
-    mTexture->bind();
+    uploadIfNeeded();
 }
 
 void TextureImpl::unbind() {
-    if (!mTexture) {
-        return;
+    if (QOpenGLFunctions* glFuncs = GraphicsUtil::getOpenGLFunctions()) {
+        glFuncs->glBindTexture(GL_TEXTURE_2D, 0);
     }
-    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 int TextureImpl::getWidth() const {
-    return mTexture->textureSize().width();
+    return mWidth;
 }
 
 int TextureImpl::getHeight() const {
-    return mTexture->textureSize().height();
+    return mHeight;
 }
 
 GLint TextureImpl::getMagnificationFilter() {
-    return toMagnificationFilterMode(mTexture->filtering());
+    return mMagFilter;
 }
 
-void TextureImpl::setMagnificationFilter(GLint) {
-    // QSGTexture does no support separate min / mag filters, so only setMinimizationFiltering has
-    // any effect.
+void TextureImpl::setMagnificationFilter(GLint value) {
+    mMagFilter = value;
+    mParamsDirty = true;
 }
 
 GLint TextureImpl::getMinificationFilter() {
-    return toMinificationFilterMode(mTexture->filtering(), mTexture->mipmapFiltering());
+    return mMinFilter;
 }
 
 void TextureImpl::setMinificationFilter(GLint value) {
-    mTexture->setFiltering(toFilterMode(value));
-    // TODO: Provide finer control over mip-mapping.
-    mTexture->setMipmapFiltering(toMipmapFilterMode(value));
+    mMinFilter = value;
+    mParamsDirty = true;
 }
 
 GLint TextureImpl::getHorizontalWrapMode() {
-    return toWrapMode(mTexture->horizontalWrapMode());
+    return mWrapS;
 }
 
 void TextureImpl::setHorizontalWrapMode(GLint value) {
-    mTexture->setHorizontalWrapMode(toWrapMode(value));
+    mWrapS = value;
+    mParamsDirty = true;
 }
 
 GLint TextureImpl::getVerticalWrapMode() {
-    return toWrapMode(mTexture->verticalWrapMode());
+    return mWrapT;
 }
 
 void TextureImpl::setVerticalWrapMode(GLint value) {
-    mTexture->setVerticalWrapMode(toWrapMode(value));
-}
-
-QSGTexture::Filtering TextureImpl::toFilterMode(GLint value) {
-    switch (value) {
-    case GL_NONE:
-        return QSGTexture::None;
-    case GL_NEAREST:
-    case GL_NEAREST_MIPMAP_NEAREST:
-    case GL_LINEAR_MIPMAP_NEAREST:
-        return QSGTexture::Nearest;
-    default:
-    case GL_LINEAR:
-    case GL_NEAREST_MIPMAP_LINEAR:
-    case GL_LINEAR_MIPMAP_LINEAR:
-        return QSGTexture::Linear;
-    }
-}
-
-QSGTexture::Filtering TextureImpl::toMipmapFilterMode(GLint value) {
-    switch (value) {
-    case GL_NONE:
-    case GL_NEAREST:
-    case GL_LINEAR:
-        return QSGTexture::None;
-    case GL_NEAREST_MIPMAP_NEAREST:
-    case GL_NEAREST_MIPMAP_LINEAR:
-        return QSGTexture::Nearest;
-    case GL_LINEAR_MIPMAP_NEAREST:
-    case GL_LINEAR_MIPMAP_LINEAR:
-        return QSGTexture::Linear;
-    default:
-        return QSGTexture::Linear;
-    }
-}
-
-GLint TextureImpl::toMagnificationFilterMode(QSGTexture::Filtering value) {
-    switch (value) {
-    case QSGTexture::None:
-        return GL_NONE;
-    case QSGTexture::Nearest:
-        return GL_NEAREST;
-    case QSGTexture::Linear:
-        return GL_LINEAR;
-    default:
-        return GL_LINEAR;
-    }
-}
-
-GLint TextureImpl::toMinificationFilterMode(QSGTexture::Filtering filtering,
-        QSGTexture::Filtering mipmapFiltering) {
-    switch (filtering) {
-    case QSGTexture::None:
-        return GL_NONE;
-    case QSGTexture::Nearest:
-        return toNearestMinificationFilterMode(mipmapFiltering);
-    case QSGTexture::Linear:
-        return toLinearMinificationFilterMode(mipmapFiltering);
-    default:
-        return toLinearMinificationFilterMode(mipmapFiltering);
-    }
-}
-
-GLint TextureImpl::toNearestMinificationFilterMode(QSGTexture::Filtering mipmapFiltering) {
-    switch (mipmapFiltering) {
-    case QSGTexture::None:
-        return GL_NEAREST;
-    case QSGTexture::Nearest:
-        return GL_NEAREST_MIPMAP_NEAREST;
-    case QSGTexture::Linear:
-        return GL_LINEAR_MIPMAP_NEAREST;
-    default:
-        return GL_NEAREST;
-    }
-}
-
-GLint TextureImpl::toLinearMinificationFilterMode(QSGTexture::Filtering mipmapFiltering) {
-    switch (mipmapFiltering) {
-    case QSGTexture::None:
-        return GL_LINEAR;
-    case QSGTexture::Nearest:
-        return GL_NEAREST_MIPMAP_LINEAR;
-    case QSGTexture::Linear:
-        return GL_LINEAR_MIPMAP_LINEAR;
-    default:
-        return GL_LINEAR;
-    }
-}
-
-QSGTexture::WrapMode TextureImpl::toWrapMode(GLint value) {
-    switch (value) {
-    case GL_CLAMP_TO_EDGE:
-        return QSGTexture::ClampToEdge;
-    case GL_REPEAT:
-        return QSGTexture::Repeat;
-    default:
-        return QSGTexture::Repeat;
-    }
-}
-
-GLint TextureImpl::toWrapMode(QSGTexture::WrapMode value) {
-    switch (value) {
-    case QSGTexture::ClampToEdge:
-        return GL_CLAMP_TO_EDGE;
-    case QSGTexture::Repeat:
-        return GL_REPEAT;
-    default:
-        return GL_REPEAT;
-    }
+    mWrapT = value;
+    mParamsDirty = true;
 }

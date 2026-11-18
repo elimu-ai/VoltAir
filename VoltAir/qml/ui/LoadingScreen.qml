@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import QtGraphicalEffects 1.0
 import QtQuick 2.2
 import VoltAir 1.0
 /**

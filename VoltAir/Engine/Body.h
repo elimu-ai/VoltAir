@@ -33,6 +33,16 @@ class b2Shape;
 struct b2BodyDef;
 struct b2FixtureDef;
 
+// The full Actor definition lives in Actor.h, which includes this header, so
+// it cannot be included here. Q_MOC_INCLUDE gives the moc-generated code the
+// complete Q_OBJECT type for the actor property without a header cycle.
+// NOTE: Do not use Q_DECLARE_OPAQUE_POINTER(Actor*) here: Actor is
+// QObject-derived, and the opaque specialization strips the
+// PointerToQObject metatype handling, producing meta-type information for
+// Body::actor that is inconsistent with Q_DECLARE_METATYPE(Actor*) in
+// Actor.h and breaks QML object wrapping (e.g. otherBody.actor).
+Q_MOC_INCLUDE("Actor.h")
+
 /**
  * @ingroup Engine
  * @brief A QObject container for a Box2D @c b2Body.
@@ -674,9 +684,9 @@ private:
     // Internal methods to implement QQmlListProperty<Joint*>
     // --------------------------------------------------------------------------------------
     static void appendJoint(QQmlListProperty<Joint>* property, Joint* value);
-    static Joint* jointAt(QQmlListProperty<Joint>* property, int index);
+    static Joint* jointAt(QQmlListProperty<Joint>* property, qsizetype index);
     static void clearJoints(QQmlListProperty<Joint>* property);
-    static int countJoints(QQmlListProperty<Joint>* property);
+    static qsizetype countJoints(QQmlListProperty<Joint>* property);
 
     mutable Actor* mActor = nullptr;
 

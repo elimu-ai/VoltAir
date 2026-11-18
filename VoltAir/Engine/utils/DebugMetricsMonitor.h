@@ -18,7 +18,7 @@
 #define DEBUGMETRICSMONITOR_H
 
 #include <QObject>
-#include <QTime>
+#include <QElapsedTimer>
 #include <QVariant>
 
 /**
@@ -170,14 +170,14 @@ private:
     int mFpsAverageWindowSizeMs = 1000;
     int mFpsRefreshIntervalMs = 100;
     float mInstantFps = 0.0f;
-    QTime mFpsRefreshTime;
+    QElapsedTimer mFpsRefreshTime;
     int mFpsCounterCount = 0;
-    QTime mFpsCounterTimer;
-    QTime mInstantFpsCounterTimer;
+    QElapsedTimer mFpsCounterTimer;
+    QElapsedTimer mInstantFpsCounterTimer;
 
     long mMemoryUsage = 0;
     int mMemoryUsageRefreshIntervalMs = 1000;
-    QTime mMemoryUsageRefreshTime;
+    QElapsedTimer mMemoryUsageRefreshTime;
 
     bool mLoggingMetrics = true;
 };

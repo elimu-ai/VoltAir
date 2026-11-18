@@ -18,8 +18,7 @@
 #define CONTACTEVENT_H
 
 #include "logics/Trigger.h"
-
-class Body;
+#include "Body.h"
 
 /**
  * @ingroup Engine

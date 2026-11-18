@@ -19,11 +19,11 @@
 
 #include <memory>
 #include "Graphic.h"
+#include "PolygonMesh.h"
 #include "TerrainMaterialDef.h"
 #include "renderer/RenderNode.h"
 #include "renderer/RendererCommon.h"
 
-class PolygonMesh;
 class QSGTexture;
 class TerrainShader;
 typedef std::shared_ptr<TerrainShader> TerrainShaderPtr;
