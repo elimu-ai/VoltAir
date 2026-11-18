@@ -27,6 +27,7 @@ import xml.etree.ElementTree as ET
 QT_ABI_TO_ANDROID_ABI = {
     "android_armv7": "armeabi-v7a",
     "android_arm64_v8a": "arm64-v8a",
+    "android_x86_64": "x86_64",
 }
 
 
@@ -388,7 +389,8 @@ def main():
                       help="Android native platform")
   parser.add_argument("--qt-abi", default=["android_armv7"],
                       nargs="+",
-                      choices=("android_armv7", "android_arm64_v8a"),
+                      choices=("android_armv7", "android_arm64_v8a",
+                               "android_x86_64"),
                       help="Qt Android ABI kit(s); pass several for a fat APK")
   parser.add_argument("--android-platform", default="android-34",
                       help="Android SDK platform used to package the APK")

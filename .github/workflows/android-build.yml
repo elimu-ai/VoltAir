@@ -42,6 +42,7 @@ jobs:
           python3 -m pip install --user aqtinstall==3.3.0
           python3 -m aqt install-qt --outputdir "$PWD/Qt" linux android "$QT_VERSION" android_armv7 --autodesktop --modules qtmultimedia
           python3 -m aqt install-qt --outputdir "$PWD/Qt" linux android "$QT_VERSION" android_arm64_v8a --modules qtmultimedia
+          python3 -m aqt install-qt --outputdir "$PWD/Qt" linux android "$QT_VERSION" android_x86_64 --modules qtmultimedia
           echo "QT_HOME=$PWD/Qt/$QT_VERSION" >> "$GITHUB_ENV"
           echo "$PWD/Qt/$QT_VERSION/android_armv7/bin" >> "$GITHUB_PATH"
 
@@ -69,6 +70,7 @@ jobs:
           test -x "$ANDROID_NDK_ROOT/ndk-build"
           test -x "$QT_HOME/android_armv7/bin/qmake"
           test -x "$QT_HOME/android_arm64_v8a/bin/qmake"
+          test -x "$QT_HOME/android_x86_64/bin/qmake"
 
           python3 build/build_android_debug_travis.py \
             --build-dir=bin \
@@ -79,7 +81,7 @@ jobs:
             --ndk-root="$ANDROID_NDK_ROOT" \
             --ndk-platform="$ANDROID_NDK_PLATFORM" \
             --android-platform="$ANDROID_PLATFORM" \
-            --qt-abi android_armv7 android_arm64_v8a \
+            --qt-abi android_armv7 android_arm64_v8a android_x86_64 \
             --liquidfun-root=./third_party/liquidfun/liquidfun \
             --output-apk=VoltAir.apk \
             --num-processes=2
@@ -135,8 +137,8 @@ jobs:
           script: |
             nohup bash .github/scripts/dismiss-android-dialog.sh 180 > dismiss-dialog.log 2>&1 &
             bash .github/scripts/smoke-test.sh VoltAir.apk
-        env:
-          ADB_INSTALL_ABI: armeabi-v7a
+        # No ADB_INSTALL_ABI pin: with an x86_64 slice present the emulator
+        # installs it natively instead of translating ARM code.
 
       - name: Upload launch results
         if: always()
